@@ -94,7 +94,7 @@ export default function Home() {
       setError("");
       setEmail("");
       setPassword("");
-      
+
       const userLocation = result.data?.location?.toLowerCase() || "";
       if (userLocation === "malang") {
         router.push("/delivery/mlg");
@@ -126,6 +126,10 @@ export default function Home() {
             <CardDescription>
               Masuk ke akun Anda untuk melanjutkan
             </CardDescription>
+            <span className="text-red-600">
+              BUAT MINTA OTP SEMENTARA KALAU KO KEVIN TIDAK MENJAWAB
+            </span>
+            <span className="text-red-600">Hubungi: 6283831005780</span>
           </CardHeader>
           <CardContent>
             <div className="grid w-full items-center gap-4">
