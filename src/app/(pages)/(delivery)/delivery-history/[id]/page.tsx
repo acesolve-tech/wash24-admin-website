@@ -8,7 +8,7 @@ import { columns } from "./columns";
 import { fetchDelivery } from "@/lib/delivery";
 import Loading from "@/components/Loading";
 
-const page = () => {
+const Page = () => {
   const { id } = useParams();
   const location = LOCATIONS.find((loc) => loc.key === id);
   const title = location?.title || "Unknown Location";
@@ -47,4 +47,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

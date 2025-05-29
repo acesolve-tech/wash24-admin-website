@@ -5,7 +5,7 @@ import { clearOldOtps, fetchAllOtp } from "@/lib/otp";
 import { Timestamp } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 
-const page = () => {
+const Page = () => {
   const [otps, setOtps] = useState<any>([]);
   const [loading, setLoading] = useState(false);
 
@@ -84,4 +84,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

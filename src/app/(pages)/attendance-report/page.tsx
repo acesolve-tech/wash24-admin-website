@@ -11,7 +11,7 @@ import { userStore } from "@/store/user";
 import AttendanceReportForm from "@/components/popup/attendance-report-form";
 import Loading from "@/components/Loading";
 
-const page = () => {
+const Page = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -60,7 +60,7 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
 
 const getColumns = (
   setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>

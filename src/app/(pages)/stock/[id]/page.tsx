@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { BadgeCheck } from "lucide-react";
 import { cloneCollection, fetchStock, saveStock } from "@/lib/stock";
 
-const page = () => {  
+const Page = () => {  
   const { id } = useParams();
   const location = LOCATIONS.find((loc) => loc.key === id);
   const title = location?.title || "Unknown Location"; 
@@ -175,4 +175,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

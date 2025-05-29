@@ -10,7 +10,7 @@ import { fetchUsersByRole } from "@/lib/staff";
 import StaffForm from "@/components/popup/staff-form";
 import Loading from "@/components/Loading";
 
-const page = () => {
+const Page = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>([]);
   const [openEditForm, setOpenEditForm] = useState({
@@ -54,7 +54,7 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
 
 const getColumns = (
   setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>

@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import React, { useState } from "react";
 
-const page = () => {
+const Page = () => {
   const user = userStore((state: any) => state.user);
 
   const { id } = useParams();
@@ -65,4 +65,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

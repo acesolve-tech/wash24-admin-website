@@ -15,7 +15,7 @@ import Loading from "@/components/Loading";
 import ProductionForm from "@/components/popup/production-form";
 import ProductionExportForm from "@/components/popup/production-export-form";
 
-const page = () => {
+const Page = () => {
   const { id } = useParams();
   const location = LOCATIONS.find((loc) => loc.key === id);
   const title = location?.title || "Unknown Location";
@@ -84,7 +84,7 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
 
 const getColumns = (
   setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>,

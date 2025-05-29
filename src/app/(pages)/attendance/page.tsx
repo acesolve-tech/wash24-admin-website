@@ -25,7 +25,7 @@ import successAnimation from "@/../public/assets/animation/successAnimation.json
 import failedAnimation from "@/../public/assets/animation/failedAnimation.json";
 import Clock from "@/components/Clock";
 
-const page = () => {
+const Page = () => {
   const [open, setOpen] = useState(false);
   const [userId, setUserId] = useState("");
   const [attendanceType, setAttendanceType] = useState("");
@@ -208,4 +208,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
