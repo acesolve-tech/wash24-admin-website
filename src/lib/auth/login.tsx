@@ -3,6 +3,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { setCookies } from "./cookies";
 import { setJWT } from "./jwt";
+import { User } from "@/types/user";
 
 export async function login(email: string, password: string) {
   try {
@@ -33,7 +34,7 @@ export async function login(email: string, password: string) {
 
     return {
       success: true,
-      data: { uid, ...userData },
+      data: { uid, ...userData } as User,
       message: "Login successful",
     };
   } catch (error: any) {

@@ -86,16 +86,23 @@ export default function Home() {
       const result = await login(email, password);
       if (!result.success) {
         setPassword("");
-        console.log(result.message)
+        console.log(result.message);
         setError("Email dan Password tidak sesuai");
         setLoading(false);
         return;
-      } 
+      }
       setError("");
       setEmail("");
       setPassword("");
-      console.log("TESTING");
-      router.push("/attendance");
+      
+      const userLocation = result.data?.location?.toLowerCase() || "";
+      if (userLocation === "malang") {
+        router.push("/delivery/mlg");
+      } else if (userLocation === "surabaya") {
+        router.push("/delivery/sby");
+      } else if (userLocation === "jkt" || userLocation === "jakarta") {
+        router.push("/delivery/jkt");
+      }
     } catch (error) {
       console.log(error);
       setError("Email dan Password tidak sesuai");
