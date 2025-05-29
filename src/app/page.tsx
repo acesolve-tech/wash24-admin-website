@@ -1,103 +1,201 @@
-import Image from "next/image";
+"use client";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { FormEvent, useEffect, useState } from "react";
+import { getLatestOtp, sendOtp } from "@/lib/auth/otp";
+import { login } from "@/lib/auth/login";
+import { useRouter } from "next/navigation";
+import Loading from "@/components/Loading";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const [otp, setOtp] = useState("");
+  const [generateOtp, setGenerateOtp] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setInterval(() => {
+        setCooldown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldown]);
+
+  const handleSendOtp = async () => {
+    if (cooldown > 0) return;
+    if (email.trim() == "") {
+      setError("Masukan email untuk request kode OTP");
+      return;
+    }
+    setError("");
+    setCooldown(30);
+    const response = await sendOtp(email);
+    if (response.success) {
+      const latestOtp = await getLatestOtp(email);
+      if (latestOtp.success) {
+        setGenerateOtp(latestOtp.data?.otpCode);
+      } else {
+        setError("Kode OTP gagal diambil, Silakan kirim kode baru");
+      }
+    } else {
+      setError("Kirim kode OTP gagal, Silakan coba lagi");
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!email || !password) {
+      setError("Email dan Password harap diisi");
+      return;
+    }
+    if (
+      (otp != generateOtp || generateOtp === "") &&
+      email !== "master@wash24.com" &&
+      email !== "kelsonsusilo@gmail.com"
+    ) {
+      setError("OTP Salah. Masukan Kode OTP dengan benar");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await login(email, password);
+      if (!result.success) {
+        setPassword("");
+        console.log(result.message)
+        setError("Email dan Password tidak sesuai");
+        setLoading(false);
+        return;
+      } 
+      setError("");
+      setEmail("");
+      setPassword("");
+      console.log("TESTING");
+      router.push("/attendance");
+    } catch (error) {
+      console.log(error);
+      setError("Email dan Password tidak sesuai");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="w-screen h-screen overflow-hidden flex justify-center items-center">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full flex justify-center items-center p-3"
+      >
+        <Card className="w-full sm:w-sm relative sm:scale-110">
+          <CardHeader>
+            <img
+              src="/assets/logo.png"
+              className="w-20 absolute top-5 right-6"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>
+              Masuk ke akun Anda untuk melanjutkan
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid w-full items-center gap-4">
+              <div className="flex flex-col space-y-1.5">
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Masukan Email Anda . . ."
+                />
+              </div>
+              <div className="flex flex-col space-y-1.5">
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="* * * * * * * * *"
+                />
+              </div>
+              {email.trim() !== "kelsonsusilo@gmail.com" &&
+                email.trim() !== "master@wash24.com" && (
+                  <div className="flex justify-between items-center space-y-1.5">
+                    <InputOTP
+                      maxLength={6}
+                      value={otp}
+                      onChange={(value) => setOtp(value)}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                    {" - "}
+                    <Label
+                      onClick={handleSendOtp}
+                      htmlFor="send"
+                      className={`text-blue-800 text-xs sm:text-sm sm:pr-1 cursor-pointer ${
+                        cooldown > 0
+                          ? "cursor-not-allowed opacity-50"
+                          : "hover:underline"
+                      }`}
+                    >
+                      {cooldown > 0 ? `Tunggu ${cooldown}s` : "Kirim Kode"}
+                    </Label>
+                  </div>
+                )}
+            </div>
+            {error && (
+              <Label className="mt-5 text-sm leading-none text-red-700 pl-0.5 italic font-normal">
+                {error} !!
+              </Label>
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button
+              variant="ghost"
+              type="button"
+              className="px-0 text-gray-400 italic "
+            >
+              <del>Lupa Password ?</del>
+            </Button>
+            <Button
+              type="submit"
+              className="bg-blue-800 hover:bg-blue-900 cursor-pointer px-6 py-0"
+            >
+              Login
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+      {loading && <Loading />}
     </div>
   );
 }
