@@ -39,6 +39,7 @@ const Page = () => {
   const handleClearOtp = async () => {
     setLoading(true);
     const result = await clearOldOtps();
+    fetchData();
     setLoading(false);
   };
 
