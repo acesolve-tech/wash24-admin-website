@@ -100,8 +100,8 @@ export default function Home() {
         router.push("/delivery/mlg");
       } else if (userLocation === "surabaya") {
         router.push("/delivery/sby");
-      } else if (userLocation === "jkt" || userLocation === "jakarta") {
-        router.push("/delivery/jkt");
+      } else if (userLocation === "jakarta") {
+        router.push("/delivery/jkt3");
       }
     } catch (error) {
       console.log(error);
