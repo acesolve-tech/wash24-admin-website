@@ -11,14 +11,11 @@ import {
 
 export async function clearOldOtps() {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const startOfDay = today.getTime();
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); 
 
     const otpQuery = query(
       collection(db, "OTP"),
-      where("createdAt", "<", new Date(startOfDay))
+      where("createdAt", "<", oneHourAgo)
     );
 
     const querySnapshot = await getDocs(otpQuery);
