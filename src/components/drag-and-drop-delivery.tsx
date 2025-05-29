@@ -301,7 +301,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
     newIndex: number
   ) => {
     const oldIndex = parseInt(e.dataTransfer.getData("index"), 10);
-    let newList = [...listPickUp];
+    const newList = [...listPickUp];
     const item = newList.splice(oldIndex, 1)[0];
     newList.splice(newIndex, 0, item);
     setListPickUp(newList);
@@ -342,7 +342,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
     newIndex: number
   ) => {
     const oldIndex = parseInt(e.dataTransfer.getData("index"), 10);
-    let newList = [...listDelivery];
+    const newList = [...listDelivery];
     const item = newList.splice(oldIndex, 1)[0];
     newList.splice(newIndex, 0, item);
     setListDelivery(newList);

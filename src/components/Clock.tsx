@@ -18,9 +18,9 @@ const Clock: React.FC = () => {
       ) as HTMLButtonElement;
 
     const clock = () => {
-      let date = new Date();
+      const date = new Date();
 
-      let hh = date.getHours() * 30,
+      const hh = date.getHours() * 30,
         mm = date.getMinutes() * 6,
         ss = date.getSeconds() * 6;
 
@@ -31,7 +31,7 @@ const Clock: React.FC = () => {
     setInterval(clock, 1000);
 
     const clockText = () => {
-      let date = new Date();
+      const date = new Date();
 
       let hh = date.getHours(),
         ampm,

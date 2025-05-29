@@ -146,7 +146,7 @@ const getColumns = (
     cell: ({ row }) => {
       return (
         <div className="font-medium" style={{ color: "green" }}>
-          {(row.getValue("income") as Number)?.toLocaleString("id-ID", {
+          {(row.getValue("income") as number)?.toLocaleString("id-ID", {
             style: "currency",
             currency: "IDR",
           })}
@@ -160,7 +160,7 @@ const getColumns = (
     cell: ({ row }) => {
       return (
         <div className="font-medium" style={{ color: "red" }}>
-          {(row.getValue("expense") as Number)?.toLocaleString("id-ID", {
+          {(row.getValue("expense") as number)?.toLocaleString("id-ID", {
             style: "currency",
             currency: "IDR",
           })}
@@ -180,7 +180,7 @@ const getColumns = (
               (row.getValue("currentTotal") as number) < 0 ? "red" : "green",
           }}
         >
-          {(row.getValue("currentTotal") as Number)?.toLocaleString("id-ID", {
+          {(row.getValue("currentTotal") as number)?.toLocaleString("id-ID", {
             style: "currency",
             currency: "IDR",
           })}

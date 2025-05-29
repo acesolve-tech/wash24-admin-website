@@ -194,7 +194,7 @@ export const updateAttendance = async (
       return Timestamp.fromDate(date);
     };
 
-    let updateObject: Record<string, any> = {};
+    const updateObject: Record<string, any> = {};
 
     if (payload.clockInHours !== "" && payload.clockInMinutes !== "") {
       const clockInDate = new Date(baseDate);
@@ -206,7 +206,7 @@ export const updateAttendance = async (
     }
 
     if (payload.clockOutHours !== "" && payload.clockOutMinutes !== "") {
-      let clockOutDate = new Date(baseDate);
+      const clockOutDate = new Date(baseDate);
       const inHours = parseInt(payload.clockInHours);
       const inMinutes = parseInt(payload.clockInMinutes);
       const outHours = parseInt(payload.clockOutHours);
@@ -236,7 +236,7 @@ export const updateAttendance = async (
     }
 
     if (payload.restEndHours !== "" && payload.restEndMinutes !== "") {
-      let restEndDate = new Date(baseDate);
+      const restEndDate = new Date(baseDate);
       const rsHours = parseInt(payload.restStartHours);
       const rsMinutes = parseInt(payload.restStartMinutes);
       const reHours = parseInt(payload.restEndHours);

@@ -4,7 +4,7 @@ export type CashReport = {
   id: string;
   date: Timestamp;
   infomation: string;
-  income: Number;
-  expense: Number;
-  currentTotal: Number;
+  income: number;
+  expense: number;
+  currentTotal: number;
 };
