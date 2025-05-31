@@ -61,7 +61,7 @@ export async function fetchCashReport(collectionName: string) {
       message: "Data cash report berhasil diambil",
     };
   }
-}
+} 
 
 const convertBase64ToFirebase = async (photo: string) => {
   if (!photo?.startsWith("data:image")) {

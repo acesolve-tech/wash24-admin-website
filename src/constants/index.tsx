@@ -10,6 +10,7 @@ import {
   Truck,
   Banknote,
   Warehouse,
+  ListChecks,
 } from "lucide-react";
 
 export const LOCATIONS = [
@@ -55,6 +56,12 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     role: ["Master"],
   },
   {
+    title: "Tugas",
+    icon: <ListChecks className="size-7" />,
+    path: "/task",
+    role: ["Master"],
+  },
+  {
     title: "Delivery",
     icon: <Truck className="size-7" />,
     path: "#",
@@ -71,9 +78,6 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     icon: <Banknote className="size-7" />,
     path: "#",
     subItems: generateLocationSubItems("/cash-report"),
-    // subItems: generateLocationSubItems("/cash-report", {
-    //   jkt3: "jkt2",
-    // }),
   },
   {
     title: "Stok",
