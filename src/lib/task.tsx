@@ -1,4 +1,5 @@
 import { db, storage } from "@/config/firebase";
+import { Task } from "@/types/task";
 import {
   addDoc,
   collection,
@@ -15,16 +16,23 @@ import { getDownloadURL, ref, uploadString } from "firebase/storage";
 
 export async function fetchTask() {
   try {
-    const otpQuery = query(collection(db, "tasks"), orderBy("order", "asc"));
-    const querySnapshot = await getDocs(otpQuery);
+    const taskQuery = query(collection(db, "tasks"), orderBy("order", "asc"));
+    const querySnapshot = await getDocs(taskQuery);
 
-    const otps = querySnapshot.docs.map((doc) => ({
+    const allTasks: Task[] = querySnapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data(),
+      ...(doc.data() as Omit<Task, "id">),
     }));
+ 
+    const highPriority = allTasks.filter((task) => task.taskType === "high");
+    const otherPriority = allTasks.filter((task) => task.taskType !== "high");
+
     return {
       success: true,
-      data: otps,
+      data: {
+        high: highPriority,
+        other: otherPriority,
+      },
       message: "Data Tasks berhasil diambil",
     };
   } catch (error) {
@@ -40,7 +48,8 @@ export async function addTask(
   title: string,
   description: string,
   note: string,
-  photo: string | null
+  photo: string | null,
+  taskType: string
 ) {
   try {
     let photoURL = "";
@@ -56,6 +65,7 @@ export async function addTask(
       description,
       note,
       photo: photoURL,
+      taskType,
       status: false,
       order: -1,
     });
@@ -82,6 +92,7 @@ export async function updateTask(
     description?: string;
     note?: string;
     photo?: string | null;
+    taskType?: string;
   }
 ) {
   try {

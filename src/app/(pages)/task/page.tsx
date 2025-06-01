@@ -30,22 +30,26 @@ import { CSS } from "@dnd-kit/utilities";
 const Page = () => {
   const [loading, setLoading] = useState(true);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
-  const [data, setData] = useState<any>([]);
+  const [tasks, setTasks] = useState<{ high: any[]; other: any[] }>({
+    high: [],
+    other: [],
+  });
   const [openEditForm, setOpenEditForm] = useState({
     status: false,
     details: null,
   });
 
   const fetchData = async () => {
+    setLoading(true);
     const result = await fetchTask();
-    const fetchedData = result.data;
+    const fetchedData = result.data || { high: [], other: [] };
 
     const checkedMap: Record<string, boolean> = {};
-    fetchedData?.forEach((item: any) => {
+    [...fetchedData.high, ...fetchedData.other].forEach((item: any) => {
       checkedMap[item.id] = item.status;
     });
 
-    setData(fetchedData);
+    setTasks({ high: fetchedData.high, other: fetchedData.other });
     setCheckedItems(checkedMap);
     setLoading(false);
   };
@@ -64,15 +68,34 @@ const Page = () => {
     fetchData();
   };
 
-  const totalTasks = data.length;
-  const completedTasks = data.filter((t: any) => t.status).length;
+  const handleDragEnd = async (
+    activeId: string,
+    overId: string | null,
+    priority: "high" | "other"
+  ) => {
+    if (!overId || activeId === overId) return;
+    const currentList = [...tasks[priority]];
+    const oldIndex = currentList.findIndex((item) => item.id === activeId);
+    const newIndex = currentList.findIndex((item) => item.id === overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newList = arrayMove(currentList, oldIndex, newIndex);
+    setTasks((prev) => ({ ...prev, [priority]: newList }));
+
+    const orderedIds = newList.map((item) => item.id);
+    await updateOrder(orderedIds);
+  };
+
+  const allTasks = [...tasks.high, ...tasks.other];
+  const totalTasks = allTasks.length;
+  const completedTasks = allTasks.filter((t) => t.status).length;
   const incompleteTasks = totalTasks - completedTasks;
 
   return (
     <div className="min-h-[calc(100dvh-40px)] overflow-y-auto space-y-6">
       <Label className="text-3xl font-bold w-fit">List Tugas</Label>
       <div className="w-full flex justify-between items-end">
-        <Label className="px-1 text-gray-600 font-normal">
+        <Label className="text-gray-600 font-normal">
           Total: {totalTasks} Tugas ( {completedTasks}
           <Check className="inline size-3 text-green-600" /> {incompleteTasks}
           <X className="inline size-3 text-red-600" />)
@@ -90,175 +113,207 @@ const Page = () => {
           + Tambah Tugas
         </div>
       </div>
-      <div className="flex flex-col w-full gap-3">
-        {/* {data.map((item: any) => (
-          <div
-            key={item.id}
-            onClick={() => setOpenEditForm({ status: true, details: item })}
-            className={`hover:bg-accent/50 flex justify-between items-center gap-3 rounded-lg cursor-pointer border p-3 ${
-              checkedItems[item.id] ? "" : "border-gray-400"
-            }`}
-          >
-            <div className="flex justify-start items-start gap-3">
-              <div onClick={(e) => e.stopPropagation()}>
-                <Checkbox
-                  checked={checkedItems[item.id] ?? false}
-                  onCheckedChange={(checked) =>
-                    handleToggleTask(item.id, !!checked)
-                  }
-                  className={`peer border size-5 ${
-                    checkedItems[item.id]
-                      ? "!border-gray-300"
-                      : "!border-gray-400"
-                  } bg-white data-[state=checked]:!bg-gray-400 data-[state=checked]:text-white`}
-                />
-              </div>
-              <div className="grid gap-1.5 font-normal">
-                <p
-                  className={`text-sm leading-none font-medium ${
-                    checkedItems[item.id]
-                      ? "line-through text-muted-foreground"
-                      : ""
-                  }`}
-                >
-                  {item?.title}
-                </p>
-                <p
-                  className={`text-sm leading-none ${
-                    checkedItems[item.id]
-                      ? "line-through text-muted-foreground"
-                      : ""
-                  }`}
-                >
-                  {item?.description}
-                </p>
-                <p
-                  className={`text-sm leading-none ${
-                    checkedItems[item.id]
-                      ? "line-through text-muted-foreground"
-                      : "text-gray-700"
-                  }`}
-                >
-                  Catatan: {item?.note}
-                </p>
-              </div>
-            </div>
-
-            <div className="gap-1.5 font-normal flex justify-center items-center">
-              {item?.photo && (
-                <img
-                  src={item.photo}
-                  alt="Task"
-                  className="size-14 object-cover rounded-md border"
-                />
-              )}
-            </div>
-          </div>
-        ))} */}
-        <DndContext
-          sensors={useSensors(useSensor(PointerSensor))}
-          collisionDetection={closestCenter}
-          onDragEnd={async (event) => {
-            const { active, over } = event;
-            if (active.id !== over?.id) {
-              const oldIndex = data.findIndex(
-                (item: any) => item.id === active.id
+      <div className="flex w-full gap-3"> 
+        <div className="flex flex-col w-1/2 gap-3">
+          <Label className="text-red-500">Prioritas Tinggi</Label>
+          <DndContext
+            sensors={useSensors(useSensor(PointerSensor))}
+            collisionDetection={closestCenter}
+            onDragEnd={async (event) => {
+              const { active, over } = event;
+              await handleDragEnd(
+                active.id as string,
+                over?.id as string,
+                "high"
               );
-              const newIndex = data.findIndex(
-                (item: any) => item.id === over?.id
-              );
-              const newData = arrayMove(data, oldIndex, newIndex);
-              setData(newData);
-              const orderedIds = newData.map((item: any) => item.id);
-              await updateOrder(orderedIds);
-            }
-          }}
-        >
-          <SortableContext
-            items={data.map((item: any) => item.id)}
-            strategy={verticalListSortingStrategy}
+            }}
           >
-            {data.map((item: any) => (
-              <SortableItem key={item.id} item={item}>
-                {({ setNodeRef, style, dragHandleProps }) => (
-                  <div
-                    ref={setNodeRef}
-                    style={style}
-                    onClick={() =>
-                      setOpenEditForm({ status: true, details: item })
-                    }
-                    className={`hover:bg-accent/50 flex justify-between items-center gap-3 rounded-lg cursor-pointer border p-3 ${
-                      checkedItems[item.id] ? "" : "border-gray-400"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={checkedItems[item.id] ?? false}
-                          onCheckedChange={(checked) =>
-                            handleToggleTask(item.id, !!checked)
-                          }
-                          className={`peer border size-5 ${
-                            checkedItems[item.id]
-                              ? "!border-gray-300"
-                              : "!border-gray-400"
-                          } bg-white data-[state=checked]:!bg-gray-400 data-[state=checked]:text-white`}
-                        />
+            <SortableContext
+              items={tasks.high.map((item) => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {tasks.high.map((item) => (
+                <SortableItem key={item.id} item={item}>
+                  {({ setNodeRef, style, dragHandleProps }) => (
+                    <div
+                      ref={setNodeRef}
+                      style={style}
+                      onClick={() =>
+                        setOpenEditForm({ status: true, details: item })
+                      }
+                      className={`hover:bg-accent/50 flex justify-between items-center gap-3 rounded-lg cursor-pointer border p-3 ${
+                        checkedItems[item.id] ? "" : "border-gray-400"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={checkedItems[item.id] ?? false}
+                            onCheckedChange={(checked) =>
+                              handleToggleTask(item.id, !!checked)
+                            }
+                            className={`peer border size-5 ${
+                              checkedItems[item.id]
+                                ? "!border-gray-300"
+                                : "!border-gray-400"
+                            } bg-white data-[state=checked]:!bg-gray-400 data-[state=checked]:text-white`}
+                          />
+                        </div>
+                        <div className="grid gap-1.5 font-normal">
+                          <p
+                            className={`text-sm leading-none font-medium ${
+                              checkedItems[item.id]
+                                ? "line-through text-muted-foreground"
+                                : ""
+                            }`}
+                          >
+                            {item?.title}
+                          </p>
+                          <p
+                            className={`text-sm leading-none ${
+                              checkedItems[item.id]
+                                ? "line-through text-muted-foreground"
+                                : ""
+                            }`}
+                          >
+                            {item?.description}
+                          </p>
+                          <p
+                            className={`text-sm leading-none ${
+                              checkedItems[item.id]
+                                ? "line-through text-muted-foreground"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            Catatan: {item?.note}
+                          </p>
+                        </div>
                       </div>
-                      <div className="grid gap-1.5 font-normal">
-                        <p
-                          className={`text-sm leading-none font-medium ${
-                            checkedItems[item.id]
-                              ? "line-through text-muted-foreground"
-                              : ""
-                          }`}
+
+                      <div className="flex items-center gap-5">
+                        {item?.photo && (
+                          <img
+                            src={item.photo}
+                            alt="Task"
+                            className="size-14 object-cover rounded-md border"
+                          />
+                        )}
+                        <div
+                          {...dragHandleProps}
+                          onClick={(e) => e.stopPropagation()}
+                          className="cursor-grab active:cursor-grabbing text-gray-500"
                         >
-                          {item?.title}
-                        </p>
-                        <p
-                          className={`text-sm leading-none ${
-                            checkedItems[item.id]
-                              ? "line-through text-muted-foreground"
-                              : ""
-                          }`}
-                        >
-                          {item?.description}
-                        </p>
-                        <p
-                          className={`text-sm leading-none ${
-                            checkedItems[item.id]
-                              ? "line-through text-muted-foreground"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          Catatan: {item?.note}
-                        </p>
+                          <ArrowUpDown className="size-5" />
+                        </div>
                       </div>
                     </div>
+                  )}
+                </SortableItem>
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
 
-                    <div className="flex items-center gap-5">
-                      {item?.photo && (
-                        <img
-                          src={item.photo}
-                          alt="Task"
-                          className="size-14 object-cover rounded-md border"
-                        />
-                      )}
-                      {/* ✅ Drag handle on the RIGHT */}
-                      <div
-                        {...dragHandleProps}
-                        onClick={(e) => e.stopPropagation()}
-                        className="cursor-grab active:cursor-grabbing text-gray-500"
-                      >
-                        <ArrowUpDown className="size-5"/>
+        {/* Other Priority */}
+        <div className="flex flex-col w-1/2 gap-3">
+          <Label className="text-yellow-500">Prioritas Rendah</Label>
+          <DndContext
+            sensors={useSensors(useSensor(PointerSensor))}
+            collisionDetection={closestCenter}
+            onDragEnd={async (event) => {
+              const { active, over } = event;
+              await handleDragEnd(
+                active.id as string,
+                over?.id as string,
+                "other"
+              );
+            }}
+          >
+            <SortableContext
+              items={tasks.other.map((item) => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {tasks.other.map((item) => (
+                <SortableItem key={item.id} item={item}>
+                  {({ setNodeRef, style, dragHandleProps }) => (
+                    <div
+                      ref={setNodeRef}
+                      style={style}
+                      onClick={() =>
+                        setOpenEditForm({ status: true, details: item })
+                      }
+                      className={`hover:bg-accent/50 flex justify-between items-center gap-3 rounded-lg cursor-pointer border p-3 ${
+                        checkedItems[item.id] ? "" : "border-gray-400"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={checkedItems[item.id] ?? false}
+                            onCheckedChange={(checked) =>
+                              handleToggleTask(item.id, !!checked)
+                            }
+                            className={`peer border size-5 ${
+                              checkedItems[item.id]
+                                ? "!border-gray-300"
+                                : "!border-gray-400"
+                            } bg-white data-[state=checked]:!bg-gray-400 data-[state=checked]:text-white`}
+                          />
+                        </div>
+                        <div className="grid gap-1.5 font-normal">
+                          <p
+                            className={`text-sm leading-none font-medium ${
+                              checkedItems[item.id]
+                                ? "line-through text-muted-foreground"
+                                : ""
+                            }`}
+                          >
+                            {item?.title}
+                          </p>
+                          <p
+                            className={`text-sm leading-none ${
+                              checkedItems[item.id]
+                                ? "line-through text-muted-foreground"
+                                : ""
+                            }`}
+                          >
+                            {item?.description}
+                          </p>
+                          <p
+                            className={`text-sm leading-none ${
+                              checkedItems[item.id]
+                                ? "line-through text-muted-foreground"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            Catatan: {item?.note}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-5">
+                        {item?.photo && (
+                          <img
+                            src={item.photo}
+                            alt="Task"
+                            className="size-14 object-cover rounded-md border"
+                          />
+                        )}
+                        <div
+                          {...dragHandleProps}
+                          onClick={(e) => e.stopPropagation()}
+                          className="cursor-grab active:cursor-grabbing text-gray-500"
+                        >
+                          <ArrowUpDown className="size-5" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </SortableItem>
-            ))}
-          </SortableContext>
-        </DndContext>
+                  )}
+                </SortableItem>
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
       </div>
       {openEditForm.status && (
         <div

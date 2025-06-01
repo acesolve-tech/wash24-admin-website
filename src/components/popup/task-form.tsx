@@ -34,6 +34,7 @@ function TaskForm(props: TaskFormProps) {
   const [description, setDescription] = useState("");
   const [note, setNote] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
+  const [taskType, setTaskType] = useState("");
 
   useEffect(() => {
     const details = props.openEditForm?.details;
@@ -43,6 +44,7 @@ function TaskForm(props: TaskFormProps) {
       setDescription(details?.description || "");
       setNote(details?.note || "");
       setPhoto(details?.photo || "");
+      setTaskType(details?.taskType || "");
     }
   }, []);
 
@@ -53,13 +55,14 @@ function TaskForm(props: TaskFormProps) {
     if (actionType === "Save") {
       if (!title.trim()) return;
       if (!details?.id) {
-        await addTask(title, description, note, photo);
+        await addTask(title, description, note, photo, taskType);
       } else {
         await updateTask(details?.id, {
           title,
           description,
           note,
           photo,
+          taskType,
         });
       }
     } else if (actionType === "Delete") {
@@ -117,6 +120,32 @@ function TaskForm(props: TaskFormProps) {
           id="note"
           type="text"
         />
+      </div>
+      <div className="grid w-full items-center gap-1.5 mb-5">
+        <Label htmlFor="bankName">Prioritas</Label>
+        <div className="flex justify-between gap-3 h-7 w-fit mt-2">
+          <span
+            className={`flex-1 pl-1 text-sm cursor-pointer text-nowrap ${
+              taskType === "high"
+                ? "text-red-600 font-semibold rounded-md"
+                : "text-gray-600"
+            }`}
+            onClick={() => setTaskType("high")}
+          >
+            Prioritas Tinggi
+          </span>
+          <Separator orientation="vertical" />
+          <span
+            className={`flex-1 text-right pr-1 text-sm cursor-pointer text-nowrap ${
+              taskType === "low"
+                ? "text-yellow-600 font-semibold"
+                : "text-gray-600"
+            }`}
+            onClick={() => setTaskType("low")}
+          >
+            Prioritas Rendah
+          </span>
+        </div>
       </div>
       <div className="grid w-full items-center gap-1.5 mb-5">
         <Label htmlFor="photo">Gambar</Label>
