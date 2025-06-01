@@ -5,15 +5,17 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  orderBy,
   query,
   setDoc,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 
 export async function fetchTask() {
   try {
-    const otpQuery = query(collection(db, "tasks"));
+    const otpQuery = query(collection(db, "tasks"), orderBy("order", "asc"));
     const querySnapshot = await getDocs(otpQuery);
 
     const otps = querySnapshot.docs.map((doc) => ({
@@ -55,6 +57,7 @@ export async function addTask(
       note,
       photo: photoURL,
       status: false,
+      order: -1,
     });
 
     return {
@@ -114,6 +117,30 @@ export async function updateTask(
   }
 }
 
+export async function updateOrder(orderedIds: string[]) {
+  try {
+    const updates = orderedIds.map((taskId, index) => {
+      const taskRef = doc(db, "tasks", taskId);
+      return updateDoc(taskRef, { order: index });
+    });
+
+    await Promise.all(updates);
+
+    return {
+      success: true,
+      data: null,
+      message: "Order updated successfully",
+    };
+  } catch (error) {
+    console.error("Failed to update task order:", error);
+    return {
+      success: false,
+      data: null,
+      message: "Gagal memperbarui urutan tugas",
+    };
+  }
+}
+
 export async function deleteTask(id: string) {
   try {
     await deleteDoc(doc(db, "tasks", id));
@@ -122,7 +149,7 @@ export async function deleteTask(id: string) {
       data: null,
       message: "Tugas berhasil dihapus",
     };
-  } catch (error) { 
+  } catch (error) {
     return {
       success: false,
       data: null,

@@ -2,24 +2,33 @@
 import { Label } from "@/components/ui/label";
 import React, { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, X } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
+import { ArrowUpDown, Check, X } from "lucide-react";
 import {
   addTask,
   clearCompletedTasks,
   fetchTask,
   toggleTask,
+  updateOrder,
 } from "@/lib/task";
 import Loading from "@/components/Loading";
 import TaskForm from "@/components/popup/task-form";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const Page = () => {
-  const [loading, setLoading] = useState(true);  
+  const [loading, setLoading] = useState(true);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [data, setData] = useState<any>([]);
   const [openEditForm, setOpenEditForm] = useState({
@@ -27,7 +36,7 @@ const Page = () => {
     details: null,
   });
 
-  const fetchData = async () => { 
+  const fetchData = async () => {
     const result = await fetchTask();
     const fetchedData = result.data;
 
@@ -82,7 +91,7 @@ const Page = () => {
         </div>
       </div>
       <div className="flex flex-col w-full gap-3">
-        {data.map((item: any) => (
+        {/* {data.map((item: any) => (
           <div
             key={item.id}
             onClick={() => setOpenEditForm({ status: true, details: item })}
@@ -91,9 +100,7 @@ const Page = () => {
             }`}
           >
             <div className="flex justify-start items-start gap-3">
-              <div
-                onClick={(e) => e.stopPropagation()}  
-              >
+              <div onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                   checked={checkedItems[item.id] ?? false}
                   onCheckedChange={(checked) =>
@@ -147,7 +154,111 @@ const Page = () => {
               )}
             </div>
           </div>
-        ))}
+        ))} */}
+        <DndContext
+          sensors={useSensors(useSensor(PointerSensor))}
+          collisionDetection={closestCenter}
+          onDragEnd={async (event) => {
+            const { active, over } = event;
+            if (active.id !== over?.id) {
+              const oldIndex = data.findIndex(
+                (item: any) => item.id === active.id
+              );
+              const newIndex = data.findIndex(
+                (item: any) => item.id === over?.id
+              );
+              const newData = arrayMove(data, oldIndex, newIndex);
+              setData(newData);
+              const orderedIds = newData.map((item: any) => item.id);
+              await updateOrder(orderedIds);
+            }
+          }}
+        >
+          <SortableContext
+            items={data.map((item: any) => item.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {data.map((item: any) => (
+              <SortableItem key={item.id} item={item}>
+                {({ setNodeRef, style, dragHandleProps }) => (
+                  <div
+                    ref={setNodeRef}
+                    style={style}
+                    onClick={() =>
+                      setOpenEditForm({ status: true, details: item })
+                    }
+                    className={`hover:bg-accent/50 flex justify-between items-center gap-3 rounded-lg cursor-pointer border p-3 ${
+                      checkedItems[item.id] ? "" : "border-gray-400"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={checkedItems[item.id] ?? false}
+                          onCheckedChange={(checked) =>
+                            handleToggleTask(item.id, !!checked)
+                          }
+                          className={`peer border size-5 ${
+                            checkedItems[item.id]
+                              ? "!border-gray-300"
+                              : "!border-gray-400"
+                          } bg-white data-[state=checked]:!bg-gray-400 data-[state=checked]:text-white`}
+                        />
+                      </div>
+                      <div className="grid gap-1.5 font-normal">
+                        <p
+                          className={`text-sm leading-none font-medium ${
+                            checkedItems[item.id]
+                              ? "line-through text-muted-foreground"
+                              : ""
+                          }`}
+                        >
+                          {item?.title}
+                        </p>
+                        <p
+                          className={`text-sm leading-none ${
+                            checkedItems[item.id]
+                              ? "line-through text-muted-foreground"
+                              : ""
+                          }`}
+                        >
+                          {item?.description}
+                        </p>
+                        <p
+                          className={`text-sm leading-none ${
+                            checkedItems[item.id]
+                              ? "line-through text-muted-foreground"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          Catatan: {item?.note}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-5">
+                      {item?.photo && (
+                        <img
+                          src={item.photo}
+                          alt="Task"
+                          className="size-14 object-cover rounded-md border"
+                        />
+                      )}
+                      {/* ✅ Drag handle on the RIGHT */}
+                      <div
+                        {...dragHandleProps}
+                        onClick={(e) => e.stopPropagation()}
+                        className="cursor-grab active:cursor-grabbing text-gray-500"
+                      >
+                        <ArrowUpDown className="size-5"/>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </SortableItem>
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
       {openEditForm.status && (
         <div
@@ -168,3 +279,35 @@ const Page = () => {
 };
 
 export default Page;
+
+const SortableItem = ({
+  item,
+  children,
+}: {
+  item: any;
+  children: (props: {
+    setNodeRef: any;
+    style: React.CSSProperties;
+    dragHandleProps: any;
+  }) => React.ReactNode;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: item.id,
+    });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <>
+      {children({
+        setNodeRef,
+        style,
+        dragHandleProps: { ...listeners, ...attributes },
+      })}
+    </>
+  );
+};
