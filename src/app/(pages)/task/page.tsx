@@ -16,16 +16,18 @@ import {
   toggleTask,
 } from "@/lib/task";
 import Loading from "@/components/Loading";
+import TaskForm from "@/components/popup/task-form";
 
 const Page = () => {
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [task, setTask] = useState("");
+  const [loading, setLoading] = useState(true);  
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [data, setData] = useState<any>([]);
+  const [openEditForm, setOpenEditForm] = useState({
+    status: false,
+    details: null,
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async () => { 
     const result = await fetchTask();
     const fetchedData = result.data;
 
@@ -42,14 +44,6 @@ const Page = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handleAddTask = async () => {
-    if (!task.trim()) return;
-    await addTask(task);
-    setTask("");
-    fetchData();
-    setOpen(false);
-  };
 
   const handleToggleTask = async (id: string, status: boolean) => {
     await toggleTask(id, status);
@@ -75,69 +69,99 @@ const Page = () => {
           <X className="inline size-3 text-red-600" />)
         </Label>
         <Label
-          className="px-1 text-gray-600 font-normal ml-auto mr-10 hover:text-gray-800 cursor-pointer"
+          className="px-1 text-gray-600 font-normal ml-auto mr-7 hover:text-gray-800 cursor-pointer"
           onClick={hanldeClear}
         >
           Hapus Yang Sudah Selesai
         </Label>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <div className="cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-1.5 rounded-md text-sm font-medium text-center">
-              + Tambah Tugas
-            </div>
-          </PopoverTrigger>
-
-          <PopoverContent
-            align="end"
-            className="flex flex-col justify-end items-end gap-3"
-          >
-            <Input
-              id="task"
-              type="text"
-              value={task}
-              onChange={(e) => setTask(e.target.value)}
-              placeholder="Masukan Tugas Baru . . ."
-            />
-            <button
-              className="bg-emerald-700 hover:bg-emerald-800 rounded-md py-1 text-white px-5"
-              onClick={() => handleAddTask()}
-            >
-              Tambahkan Tugas
-            </button>
-          </PopoverContent>
-        </Popover>
+        <div
+          onClick={() => setOpenEditForm({ status: true, details: null })}
+          className="cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-1.5 rounded-md text-sm font-medium text-center"
+        >
+          + Tambah Tugas
+        </div>
       </div>
       <div className="flex flex-col w-full gap-3">
         {data.map((item: any) => (
-          <Label
+          <div
             key={item.id}
-            className={`hover:bg-accent/50 flex items-start gap-3 rounded-lg cursor-pointer border p-3 ${
+            onClick={() => setOpenEditForm({ status: true, details: item })}
+            className={`hover:bg-accent/50 flex justify-between items-center gap-3 rounded-lg cursor-pointer border p-3 ${
               checkedItems[item.id] ? "" : "border-gray-400"
             }`}
           >
-            <Checkbox
-              checked={checkedItems[item.id] ?? false}
-              onCheckedChange={(checked) =>
-                handleToggleTask(item.id, !!checked)
-              }
-              className={`peer border ${
-                checkedItems[item.id] ? "!border-gray-300" : "!border-gray-400"
-              } bg-white data-[state=checked]:!bg-gray-400 data-[state=checked]:text-white`}
-            />
-            <div className="grid gap-1.5 font-normal">
-              <p
-                className={`text-sm leading-none  ${
-                  checkedItems[item.id]
-                    ? "line-through text-muted-foreground"
-                    : "font-medium"
-                }`}
+            <div className="flex justify-start items-start gap-3">
+              <div
+                onClick={(e) => e.stopPropagation()}  
               >
-                {item?.task}
-              </p>
+                <Checkbox
+                  checked={checkedItems[item.id] ?? false}
+                  onCheckedChange={(checked) =>
+                    handleToggleTask(item.id, !!checked)
+                  }
+                  className={`peer border size-5 ${
+                    checkedItems[item.id]
+                      ? "!border-gray-300"
+                      : "!border-gray-400"
+                  } bg-white data-[state=checked]:!bg-gray-400 data-[state=checked]:text-white`}
+                />
+              </div>
+              <div className="grid gap-1.5 font-normal">
+                <p
+                  className={`text-sm leading-none font-medium ${
+                    checkedItems[item.id]
+                      ? "line-through text-muted-foreground"
+                      : ""
+                  }`}
+                >
+                  {item?.title}
+                </p>
+                <p
+                  className={`text-sm leading-none ${
+                    checkedItems[item.id]
+                      ? "line-through text-muted-foreground"
+                      : ""
+                  }`}
+                >
+                  {item?.description}
+                </p>
+                <p
+                  className={`text-sm leading-none ${
+                    checkedItems[item.id]
+                      ? "line-through text-muted-foreground"
+                      : "text-gray-700"
+                  }`}
+                >
+                  Catatan: {item?.note}
+                </p>
+              </div>
             </div>
-          </Label>
+
+            <div className="gap-1.5 font-normal flex justify-center items-center">
+              {item?.photo && (
+                <img
+                  src={item.photo}
+                  alt="Task"
+                  className="size-14 object-cover rounded-md border"
+                />
+              )}
+            </div>
+          </div>
         ))}
       </div>
+      {openEditForm.status && (
+        <div
+          className="fixed w-screen h-screen top-0 left-0 bg-black/50 flex justify-center items-center z-10"
+          onClick={() => setOpenEditForm({ status: false, details: null })}
+        >
+          <TaskForm
+            fetchData={fetchData}
+            setOpenEditForm={setOpenEditForm}
+            openEditForm={openEditForm}
+            setLoading={setLoading}
+          />
+        </div>
+      )}
       {loading && <Loading />}
     </div>
   );

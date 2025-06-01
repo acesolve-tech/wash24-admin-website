@@ -1,4 +1,4 @@
-import { db } from "@/config/firebase";
+import { db, storage } from "@/config/firebase";
 import {
   addDoc,
   collection,
@@ -9,6 +9,7 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
+import { getDownloadURL, ref, uploadString } from "firebase/storage";
 
 export async function fetchTask() {
   try {
@@ -33,10 +34,26 @@ export async function fetchTask() {
   }
 }
 
-export async function addTask(task: string) {
+export async function addTask(
+  title: string,
+  description: string,
+  note: string,
+  photo: string | null
+) {
   try {
+    let photoURL = "";
+
+    if (photo) {
+      const photoRef = ref(storage, `tasks/${Date.now()}.jpg`);
+      await uploadString(photoRef, photo, "data_url");
+      photoURL = await getDownloadURL(photoRef);
+    }
+
     const docRef = await addDoc(collection(db, "tasks"), {
-      task,
+      title,
+      description,
+      note,
+      photo: photoURL,
       status: false,
     });
 
@@ -46,10 +63,70 @@ export async function addTask(task: string) {
       message: "Tugas baru berhasil ditambahkan",
     };
   } catch (error) {
+    console.error("Error adding task:", error);
     return {
       success: false,
       data: null,
       message: "Tugas gagal disimpan",
+    };
+  }
+}
+
+export async function updateTask(
+  id: string,
+  updatedFields: {
+    title?: string;
+    description?: string;
+    note?: string;
+    photo?: string | null;
+  }
+) {
+  try {
+    let updatedPhotoURL = updatedFields.photo;
+
+    if (updatedFields.photo?.startsWith("data:image")) {
+      const photoRef = ref(storage, `tasks/${Date.now()}.jpg`);
+      await uploadString(photoRef, updatedFields.photo, "data_url");
+      updatedPhotoURL = await getDownloadURL(photoRef);
+    }
+
+    await setDoc(
+      doc(db, "tasks", id),
+      {
+        ...updatedFields,
+        ...(updatedPhotoURL && { photo: updatedPhotoURL }),
+      },
+      { merge: true }
+    );
+
+    return {
+      success: true,
+      data: null,
+      message: "Tugas berhasil diupdate",
+    };
+  } catch (error) {
+    console.error("Error updating task:", error);
+    return {
+      success: false,
+      data: null,
+      message: "Gagal mengupdate tugas",
+    };
+  }
+}
+
+export async function deleteTask(id: string) {
+  try {
+    await deleteDoc(doc(db, "tasks", id));
+    return {
+      success: true,
+      data: null,
+      message: "Tugas berhasil dihapus",
+    };
+  } catch (error) { 
+    return {
+      success: false,
+      data: null,
+      message: "Gagal menghapus tugas",
     };
   }
 }
