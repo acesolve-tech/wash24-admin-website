@@ -63,8 +63,6 @@ export async function downloadToExcel(year: number, month: number) {
   const users = await getStaffNoKurir();
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const endDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-  console.log(startDate);
-  console.log(endDate);
 
   const columns: IJsonSheet[] = [];
 
@@ -110,6 +108,32 @@ export async function downloadToExcel(year: number, month: number) {
 
             if (clock_out instanceof Timestamp) {
               return formatTimestamp(clock_out);
+            }
+            return "-";
+          },
+        },
+        {
+          label: "Rest Start",
+          value: (row) => {
+            const { rest_start } = row as {
+              rest_start?: Timestamp;
+            };
+
+            if (rest_start instanceof Timestamp) {
+              return formatTimestamp(rest_start);
+            }
+            return "-";
+          },
+        },
+        {
+          label: "Rest End",
+          value: (row) => {
+            const { rest_end } = row as {
+              rest_end?: Timestamp;
+            };
+
+            if (rest_end instanceof Timestamp) {
+              return formatTimestamp(rest_end);
             }
             return "-";
           },
