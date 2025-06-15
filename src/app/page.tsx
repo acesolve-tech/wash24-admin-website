@@ -98,10 +98,18 @@ export default function Home() {
       const userLocation = result.data?.location?.toLowerCase() || "";
       if (userLocation === "malang") {
         router.push("/delivery/mlg");
-      } else if (userLocation === "surabaya") {
-        router.push("/delivery/sby");
       } else if (userLocation === "jakarta") {
         router.push("/delivery/jkt3");
+      } else if (userLocation === "surabaya") {
+        if (email.startsWith("sbypusat")) {
+          router.push("/delivery/sby");
+        } else if (email.startsWith("sbybarat")) {
+          router.push("/delivery/sby2");
+        } else if (email.startsWith("sbytimur")) {
+          router.push("/delivery/sby3");
+        } else {
+          router.push("/delivery/sby");
+        }
       }
     } catch (error) {
       console.log(error);

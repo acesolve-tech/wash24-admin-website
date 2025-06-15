@@ -106,7 +106,7 @@ export default function UserLayout({
 
                     {hasSubItems && isOpen && (
                       <div className="mx-3 pb-2 flex flex-col">
-                        {item.subItems
+                        {/* {item.subItems
                           .filter((sub) => {
                             if (user.role === "Master") return true;
 
@@ -121,6 +121,43 @@ export default function UserLayout({
                             };
 
                             return locMap[user.location]?.includes(sub.title);
+                          })
+                          .map((sub) => (
+                            <Link
+                              key={sub.title}
+                              href={sub.path}
+                              className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-3 cursor-pointer py-3 border-b"
+                            >
+                              <CornerDownRight className="size-5 mb-0.5 opacity-50" />
+                              <span className="text-base">{sub.title}</span>
+                            </Link>
+                          ))} */}
+
+                        {item.subItems
+                          .filter((sub) => {
+                            if (user.role === "Master") return true;
+
+                            if (user.location === "Malang") {
+                              return sub.title === "Malang";
+                            }
+
+                            if (user.location === "Jakarta") {
+                              return sub.title === "Jakarta Selatan";
+                            }
+
+                            if (user.location === "Surabaya") {
+                              if (user.email?.startsWith("sbypusat")) {
+                                return sub.title === "Surabaya Pusat";
+                              }
+                              if (user.email?.startsWith("sbybarat")) {
+                                return sub.title === "Surabaya Barat";
+                              }
+                              if (user.email?.startsWith("sbytimur")) {
+                                return sub.title === "Surabaya Timur";
+                              }
+                            }
+
+                            return false;
                           })
                           .map((sub) => (
                             <Link
