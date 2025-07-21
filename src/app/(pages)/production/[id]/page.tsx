@@ -14,6 +14,7 @@ import { fetchProduction } from "@/lib/production";
 import Loading from "@/components/Loading";
 import ProductionForm from "@/components/popup/production-form";
 import ProductionExportForm from "@/components/popup/production-export-form";
+import { PiShareFatThin } from "react-icons/pi";
 
 const Page = () => {
   const { id } = useParams();
@@ -77,7 +78,10 @@ const Page = () => {
       )}
 
       {exportForm && (
-        <ProductionExportForm region={Array.isArray(id) ? id[0] : id ?? ""} setExportForm={setExportForm} />
+        <ProductionExportForm
+          region={Array.isArray(id) ? id[0] : id ?? ""}
+          setExportForm={setExportForm}
+        />
       )}
       {loading && <Loading />}
     </div>
@@ -92,6 +96,37 @@ const getColumns = (
   setCategoryToEdit: Dispatch<SetStateAction<string>>
 ): ColumnDef<Production>[] => [
   {
+    header: "",
+    accessorKey: "share",
+    cell: ({ row }) => {
+      const [copied, setCopied] = useState(false);
+      const { id } = useParams();
+      const customerId = row.original.id;
+      const shareUrl = `https://www.washcust.app/detail/${id}/${customerId}`;
+
+      const handleCopy = () => {
+        navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500); 
+      };
+
+      return (
+        <div className="group relative mt-2">
+          <button
+            onClick={handleCopy}
+            className="hover:text-primary cursor-pointer"
+          >
+            <PiShareFatThin size={20} />
+          </button>
+          <div className="absolute -top-7 -left-1 z-10 opacity-0 group-hover:opacity-100 inline-block px-2 py-1 text-xs font-medium text-white transition-opacity duration-300 bg-gray-600 rounded-sm shadow-xs tooltip">
+            <span>{copied ? "Copied!" : "Copy"}</span>
+            <div className="tooltip-arrow" data-popper-arrow></div>
+          </div>
+        </div>
+      );
+    },
+  },
+  {
     header: "Pelanggan",
     accessorKey: "customer_name",
     cell: ({ row }) => {
@@ -102,7 +137,31 @@ const getColumns = (
       if (user.role == "Master") {
         return (
           <div
-            className="w-96 text-wrap"
+            className="w-64 text-wrap"
+            onClick={() => {
+              setOpenEditForm({ status: true, details: row.original }),
+                setCategoryToEdit("Customer");
+            }}
+          >
+            {name}
+          </div>
+        );
+      }
+      return name;
+    },
+  },
+  {
+    header: "No. Tlp",
+    accessorKey: "customer_phone",
+    cell: ({ row }) => {
+      const id = row.original.id.toString();
+      const name = row.original.customer_phone;
+
+      const user = userStore((state: any) => state.user);
+      if (user.role == "Master") {
+        return (
+          <div
+            className="w-40 text-wrap"
             onClick={() => {
               setOpenEditForm({ status: true, details: row.original }),
                 setCategoryToEdit("Customer");
@@ -217,9 +276,9 @@ const getColumns = (
               setOpenEditForm({ status: true, details: row.original }),
                 setCategoryToEdit("Production Detail");
             }}
-            className=" h-24 min-w-28 w-auto rounded-md text-gray-500 cursor-pointer  flex items-center"
+            className=" h-28 min-w-28 w-auto rounded-md text-gray-500 cursor-pointer  flex items-center"
           >
-            <div className="px-2 flex flex-col items-center justify-center h-24 w-auto border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
+            <div className="px-4 flex flex-col items-center justify-center h-28 w-auto border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
               <svg
                 fill="#6B7280"
                 height="30px"
@@ -257,39 +316,46 @@ const getColumns = (
               setOpenEditForm({ status: true, details: row.original }),
                 setCategoryToEdit("Production Staff");
             }}
-            className=" h-24 min-w-28 w-auto rounded-md text-gray-500 cursor-pointer  flex items-center"
+            className=" h-28 min-w-32 w-auto rounded-md text-gray-500 cursor-pointer  flex items-center"
           >
-            <div className="px-2 flex flex-col items-start justify-center h-24 min-w-28 w-auto border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
+            <div className="px-2.5 flex flex-col items-start justify-center h-28 min-w-28 w-auto border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
               <p className="text-xs text-gray-500">
-                <span className="font-semibold">Nota:</span>
+                <span className="font-semibold">Pick Up:</span>{" "}
+                <span className="">{productionStaff?.pickup}</span>
+                <span className="ml-1">
+                  {formatTimestamp(productionStaff?.pickup_timestamp)}
+                </span>
+              </p>
+              <p className="text-xs text-gray-500">
+                <span className="font-semibold">Nota:</span>{" "}
                 <span className="">{productionStaff?.nota}</span>
                 <span className="ml-1">
                   {formatTimestamp(productionStaff?.nota_timestamp)}
                 </span>
               </p>
               <p className="text-xs text-gray-500">
-                <span className="font-semibold">Cuci:</span>
+                <span className="font-semibold">Cuci:</span>{" "}
                 <span className="">{productionStaff?.cuci}</span>
                 <span className="ml-1">
                   {formatTimestamp(productionStaff?.cuci_timestamp)}
                 </span>
               </p>
               <p className="text-xs text-gray-500">
-                <span className="font-semibold">Kering:</span>
+                <span className="font-semibold">Kering:</span>{" "}
                 <span className="">{productionStaff?.kering}</span>
                 <span className="ml-1">
                   {formatTimestamp(productionStaff?.kering_timestamp)}
                 </span>
               </p>
               <p className="text-xs text-gray-500">
-                <span className="font-semibold">Setrika:</span>
+                <span className="font-semibold">Setrika:</span>{" "}
                 <span className="">{productionStaff?.setrika}</span>
                 <span className="ml-1">
                   {formatTimestamp(productionStaff?.setrika_timestamp)}
                 </span>
               </p>
               <p className="text-xs text-gray-500">
-                <span className="font-semibold">Packing:</span>
+                <span className="font-semibold">Packing:</span>{" "}
                 <span className="">{productionStaff?.packing}</span>
                 <span className="ml-1">
                   {formatTimestamp(productionStaff?.packing_timestamp)}

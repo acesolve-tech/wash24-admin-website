@@ -3,6 +3,9 @@
   "style": "new-york",
   "rsc": true,
   "tsx": true,
+  "engines": {
+    "node": "22.x"
+  },
   "tailwind": {
     "config": "",
     "css": "src/app/globals.css",

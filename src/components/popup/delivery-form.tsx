@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, SetStateAction, Dispatch } from "react"; 
+import React, { useState, useEffect, SetStateAction, Dispatch } from "react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -34,6 +34,8 @@ import {
   finishOrCancelDelivery,
   saveDelivery,
 } from "@/lib/delivery";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { LOCATIONS } from "@/constants";
 // import { Icon } from "@iconify/react/dist/iconify.js";
 // import { ComboboxName } from "../ComboboxName";
 
@@ -96,6 +98,31 @@ export default function DeliveryForm(props: DeliverFormProps) {
         actionType,
         driver
       );
+
+      if (props.openEditForm?.details?.type == "Pick Up") {
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
+
+        const location = LOCATIONS.find(
+          (loc) => loc.collectionName === props.regionCollectionName
+        );
+
+        try {
+          await addDoc(collection(db, `productions-${location?.key}`), {
+            customer_name: props.openEditForm?.details.name,
+            customer_phone: props.openEditForm?.details.phone,
+            production_staff: {
+              pickup: driver,
+              pickup_timestamp: serverTimestamp(),
+            },
+            created_date: formattedDate,
+          });
+        } catch (error) {
+          console.error("Error adding document: ", error);
+        }
+      }
     }
     props.setOpenEditForm({ status: false, details: null });
   };

@@ -3,6 +3,7 @@ import { Timestamp } from "firebase/firestore";
 export type Production = {
   id: string;
   customer_name: string;
+  customer_phone: string;
   detail_production: any;
   production_staff: any;
 
