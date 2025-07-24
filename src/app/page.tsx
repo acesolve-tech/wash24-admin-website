@@ -127,7 +127,7 @@ export default function Home() {
         <Card className="w-full sm:w-sm relative sm:scale-110">
           <CardHeader>
             <img
-              src="/assets/logo.png"
+              src="/assets/logo.webp"
               className="w-20 absolute top-5 right-6"
             />
             <CardTitle>Login</CardTitle>

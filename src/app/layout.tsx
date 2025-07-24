@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head> 
-        <link rel="icon" href="/assets/logo.png" /> 
+        <link rel="icon" href="/assets/mini-logo.webp" /> 
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white`}
