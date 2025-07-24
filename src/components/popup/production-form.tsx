@@ -49,10 +49,14 @@ export default function ProductionForm(props: ProductionFormProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [loading, setLoading] = useState(false);
-  const [typeSelected, setTypeSelected] = useState("");
-  const [staffSelected, setStaffSelected] = useState("");
-  const [openStaff, setOpenStaff] = useState(false);
-  const [openType, setOpenType] = useState(false);
+
+  const [staffSelectedByOption, setStaffSelectedByOption] = useState<{
+    [key: string]: string;
+  }>({});
+  const [openStaffForOption, setOpenStaffForOption] = useState<{
+    [key: string]: boolean;
+  }>({});
+
   const [staffList, setStaffList] = useState<{ uid: string; name: string }[]>(
     []
   );
@@ -72,9 +76,20 @@ export default function ProductionForm(props: ProductionFormProps) {
             const data = docSnap.data();
             console.log(data);
             setCustomerName(data.customer_name || "");
+
+            const staffData = data.production_staff || {};
+            const preFilledStaff: { [key: string]: string } = {};
+
+            options.forEach((option) => {
+              if (staffData[option]) {
+                preFilledStaff[option] = staffData[option];
+              }
+            });
+
+            setStaffSelectedByOption(preFilledStaff);
           }
         } catch (error) {
-          // Handle error while fetching data
+          console.error("Error fetching production data:", error);
         }
       }
     };
@@ -248,19 +263,19 @@ export default function ProductionForm(props: ProductionFormProps) {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (option: string, staffName: string) => {
     try {
       if (!props.openEditForm?.details?.id) return;
 
       const docRef = doc(
         db,
         `productions-${props.region}`,
-        props.openEditForm?.details?.id
+        props.openEditForm.details.id
       );
 
       const updateData = {
-        [`production_staff.${typeSelected}`]: staffSelected,
-        [`production_staff.${typeSelected}_timestamp`]: serverTimestamp(),
+        [`production_staff.${option}`]: staffName,
+        [`production_staff.${option}_timestamp`]: serverTimestamp(),
       };
 
       await updateDoc(docRef, updateData);
@@ -407,117 +422,107 @@ export default function ProductionForm(props: ProductionFormProps) {
                 )}
               </div>
             )}
-          {props.openEditForm?.details?.id != null &&
-            props.openEditForm?.details?.id != "" &&
-            props.categoryToEdit == "Production Staff" && (
-              <div className="flex flex-col">
-                <div className="grid w-full items-center gap-1.5 mb-5">
-                  <Label htmlFor="typeProduction">Posisi Karyawan:</Label>
-                  <Popover open={openType} onOpenChange={setOpenType}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openType}
-                        className={`w-full justify-between font-normal capitalize ${
-                          typeSelected ? "text-gray-800" : "text-gray-500"
-                        }`}
-                      >
-                        {typeSelected || "Pilih Jenis..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="min-w-[340px] w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search type..." />
-                        <CommandList>
-                          <CommandEmpty>No type found.</CommandEmpty>
-                          <CommandGroup>
-                            {options.map((option) => (
-                              <CommandItem
-                                key={option}
-                                value={option}
-                                className="capitalize"
-                                onSelect={(currentValue) => {
-                                  setTypeSelected(
-                                    currentValue === typeSelected
-                                      ? ""
-                                      : currentValue
-                                  );
-                                  setOpenType(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    typeSelected === option
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {option}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="grid w-full items-center gap-1.5 mb-5">
-                  <Label htmlFor="staffProduction">Nama Karyawan:</Label>
-                  <Popover open={openStaff} onOpenChange={setOpenStaff}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openStaff}
-                        className={`w-full justify-between font-normal ${
-                          staffSelected ? "text-gray-800" : "text-gray-500"
-                        }`}
-                      >
-                        {staffSelected || "Pilih Karyawan..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="min-w-[340px] w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search staff..." />
-                        <CommandList>
-                          <CommandEmpty>No staff found.</CommandEmpty>
-                          <CommandGroup>
-                            {staffList?.map((staff) => (
-                              <CommandItem
-                                key={staff.uid}
-                                value={staff.name}
-                                onSelect={(currentValue) => {
-                                  setStaffSelected(
-                                    currentValue === staffSelected
-                                      ? ""
-                                      : currentValue
-                                  );
-                                  setOpenStaff(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    staffSelected === staff.name
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {staff.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+          {props.openEditForm?.details?.id &&
+            props.categoryToEdit === "Production Staff" && (
+              <div className="flex flex-col gap-4">
+                {options.map((option) => {
+                  const selectedStaff = staffSelectedByOption[option] || "";
+                  return (
+                    <div
+                      key={option}
+                      className="flex items-center justify-between gap-4"
+                    >
+                      <div className="flex-1">
+                        <Label className="capitalize mb-2 block">
+                          {option}
+                        </Label>
+                        <Popover
+                          open={openStaffForOption[option] || false}
+                          onOpenChange={(open) =>
+                            setOpenStaffForOption((prev) => ({
+                              ...prev,
+                              [option]: open,
+                            }))
+                          }
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={
+                                openStaffForOption[option] || false
+                              }
+                              className={`w-full justify-between font-normal ${
+                                selectedStaff
+                                  ? "text-gray-800"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {selectedStaff || `Pilih staff untuk ${option}`}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="min-w-[340px] w-full p-0">
+                            <Command>
+                              <CommandInput
+                                placeholder={`Cari staff untuk ${option}`}
+                              />
+                              <CommandList>
+                                <CommandEmpty>
+                                  Staff tidak ditemukan.
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {staffList.map((staff) => (
+                                    <CommandItem
+                                      key={staff.uid}
+                                      value={staff.name}
+                                      onSelect={(currentValue) => {
+                                        setStaffSelectedByOption((prev) => ({
+                                          ...prev,
+                                          [option]:
+                                            currentValue === prev[option]
+                                              ? ""
+                                              : currentValue,
+                                        }));
+                                        setOpenStaffForOption((prev) => ({
+                                          ...prev,
+                                          [option]: false,
+                                        }));
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          selectedStaff === staff.name
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                      />
+                                      {staff.name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="mt-6">
+                        <button
+                          className="w-full bg-[var(--primary-color)] hover:bg-[#301094] cursor-pointer py-1.5 rounded-md text-white flex justify-center items-center gap-2 min-w-20"
+                          onClick={() => handleSave(option, selectedStaff)}
+                          disabled={!selectedStaff}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
+
           <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
 
           <div className="w-full mt-3">
@@ -530,7 +535,7 @@ export default function ProductionForm(props: ProductionFormProps) {
                 + Tambah Produksi
               </button>
             )}
-            {props.openEditForm?.details?.id != null &&
+            {/* {props.openEditForm?.details?.id != null &&
               props.openEditForm?.details?.id != "" &&
               props.categoryToEdit == "Production Staff" && (
                 <button
@@ -539,7 +544,7 @@ export default function ProductionForm(props: ProductionFormProps) {
                 >
                   Simpan Karyawan Produksi
                 </button>
-              )}
+              )} */}
           </div>
         </div>
       </div>
