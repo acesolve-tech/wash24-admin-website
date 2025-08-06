@@ -60,7 +60,7 @@ export default function ProductionForm(props: ProductionFormProps) {
   const [staffList, setStaffList] = useState<{ uid: string; name: string }[]>(
     []
   );
-  const options = ["pickup", "nota", "cuci", "kering", "setrika", "packing"];
+  const options = ["pickup", "nota", "cuci", "kering", "setrika", "packing", "delivery"];
 
   useEffect(() => {
     const fetchProductionData = async () => {

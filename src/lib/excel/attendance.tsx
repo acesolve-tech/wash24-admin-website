@@ -87,7 +87,7 @@ export async function downloadToExcel(year: number, month: number) {
       content: syncedData,
       columns: [
         {
-          label: "Clock In",
+          label: "Datang Kerja",
           value: (row) => {
             const { clock_in } = row as {
               clock_in?: Timestamp;
@@ -100,7 +100,7 @@ export async function downloadToExcel(year: number, month: number) {
           },
         },
         {
-          label: "Clock Out",
+          label: "Pulang Kerja",
           value: (row) => {
             const { clock_out } = row as {
               clock_out?: Timestamp;
@@ -113,7 +113,7 @@ export async function downloadToExcel(year: number, month: number) {
           },
         },
         {
-          label: "Rest Start",
+          label: "Istirahat Mulai",
           value: (row) => {
             const { rest_start } = row as {
               rest_start?: Timestamp;
@@ -126,7 +126,7 @@ export async function downloadToExcel(year: number, month: number) {
           },
         },
         {
-          label: "Rest End",
+          label: "Istirahat Selesai",
           value: (row) => {
             const { rest_end } = row as {
               rest_end?: Timestamp;
@@ -137,6 +137,30 @@ export async function downloadToExcel(year: number, month: number) {
             }
             return "-";
           },
+        },
+        {
+          label: "Masuk",
+          value: ""
+        },
+        {
+          label: "Telat",
+          value: ""
+        },
+        {
+          label: "Keluar",
+          value: ""
+        },
+        {
+          label: "Lembur",
+          value: ""
+        },
+        {
+          label: "Jam Kerja",
+          value: ""
+        },
+        {
+          label: "Gaji",
+          value: ""
         },
       ],
     });

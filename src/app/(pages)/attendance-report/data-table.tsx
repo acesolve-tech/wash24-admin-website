@@ -19,10 +19,11 @@ import {
 } from "@/components/ui/table";
 
 import { Input } from "@/components/ui/input";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
 import { downloadToExcel } from "@/lib/excel/attendance";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -38,6 +39,7 @@ export function DataTable<TData, TValue>({
   setSelectedDate,
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [locationFilter, setLocationFilter] = useState("Jakarta");
 
   const table = useReactTable({
     data,
@@ -50,9 +52,13 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  useEffect(() => {
+    table.getColumn("location")?.setFilterValue(locationFilter);
+  }, [locationFilter, table]);
+
   return (
     <div className="flex flex-col justify-start items-start w-full">
-      <div className="flex items-center py-4 gap-4 w-full">
+      <div className="flex items-center py-4 gap-4 w-full overflow-x-auto">
         <Input
           placeholder="Cari Karyawan"
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
@@ -65,8 +71,34 @@ export function DataTable<TData, TValue>({
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
         />
+
+        <ToggleGroup
+          type="single"
+          value={locationFilter}
+          onValueChange={(value) => setLocationFilter(value)}
+          className="space-x-2 border ml-2 rounded-md py-1 px-2 h-full"
+        >
+          <ToggleGroupItem
+            value="Jakarta"
+            className="px-3 h-fit py-1 cursor-pointer"
+          >
+            Jakarta
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="Surabaya"
+            className="px-3 h-fit py-1 cursor-pointer"
+          >
+            Surabaya
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="Malang"
+            className="px-3 h-fit py-1 cursor-pointer"
+          >
+            Malang
+          </ToggleGroupItem>
+        </ToggleGroup>
         <button
-          className="self-end cursor-pointer ml-auto bg-purple-700 hover:bg-purple-800 text-white px-5 py-1.5 rounded-md"
+          className="self-end cursor-pointer ml-auto bg-purple-700 hover:bg-purple-800 text-white px-5 py-1.5 rounded-md text-nowrap"
           onClick={() =>
             downloadToExcel(
               selectedDate?.getFullYear(),
