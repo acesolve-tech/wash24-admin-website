@@ -1,3 +1,5 @@
+"use client";
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -12,11 +14,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Wash24 Laundry (Administrative)",
-  description: "",
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -24,8 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head> 
-        <link rel="icon" href="/assets/mini-logo.webp" /> 
+      <head>
+        <title>Wash24 Laundry (Administrative)</title>
+        <meta name="description" content="" />
+        <link rel="icon" href="/assets/mini-logo.webp" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white`}

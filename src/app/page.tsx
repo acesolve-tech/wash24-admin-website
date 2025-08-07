@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { getLatestOtp, sendOtp } from "@/lib/auth/otp";
 import { login } from "@/lib/auth/login";
 import { useRouter } from "next/navigation";
-import Loading from "@/components/Loading";
 
 import {
   Card,
@@ -17,11 +17,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+const Loading = dynamic(() => import("@/components/Loading"), {
+  ssr: false,
+});
+const InputOTP = dynamic(
+  () => import("@/components/ui/input-otp").then((mod) => mod.InputOTP),
+  { ssr: false }
+);
+const InputOTPGroup = dynamic(
+  () => import("@/components/ui/input-otp").then((mod) => mod.InputOTPGroup),
+  { ssr: false }
+);
+const InputOTPSlot = dynamic(
+  () => import("@/components/ui/input-otp").then((mod) => mod.InputOTPSlot),
+  { ssr: false }
+);
 
 export default function Home() {
   const router = useRouter();

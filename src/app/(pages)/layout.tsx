@@ -11,8 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { SIDEBAR_ITEMS } from "@/constants";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, CornerDownRight, LogOut } from "lucide-react";
-import { decodeToken } from "@/lib/auth/decode";
+import { ChevronDown, ChevronUp, CornerDownRight, LogOut } from "lucide-react"; 
 import { userStore } from "@/store/user";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth/logout";
