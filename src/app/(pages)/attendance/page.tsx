@@ -24,9 +24,14 @@ import Lottie from "lottie-react";
 import successAnimation from "@/../public/assets/animation/successAnimation.json";
 import failedAnimation from "@/../public/assets/animation/failedAnimation.json";
 import Clock from "@/components/Clock";
+import { userStore } from "@/store/user";
 
 const Page = () => {
-  const [open, setOpen] = useState(false);
+  const user = userStore((state: any) => state.user);
+  const fetchUser = userStore((state: any) => state.fetchUser);
+  const [open1, setOpen1] = useState(false);
+  const [open2, setOpen2] = useState(false);
+
   const [userId, setUserId] = useState("");
   const [attendanceType, setAttendanceType] = useState("");
   const [staffList, setStaffList] = useState<{ uid: string; name: string }[]>(
@@ -39,12 +44,16 @@ const Page = () => {
 
   useEffect(() => {
     const loadStaff = async () => {
-      const res = await fetchUsersByRole();
+      const res = await fetchUsersByRole("Staff", user.location);
       if (res.success && res.data) {
         setStaffList(res.data);
       }
     };
     loadStaff();
+  }, [user.location]);
+
+  useEffect(() => {
+    fetchUser();
   }, []);
 
   const handleSubmit = async () => {
@@ -69,12 +78,12 @@ const Page = () => {
   return (
     <div className="min-h-[calc(100dvh-40px)] overflow-y-auto space-y-6">
       <Label className="text-3xl font-bold w-fit">Absensi</Label>
-      <div className="w-full flex justify-center items-center min-h-[80dvh]">
+      <div className="w-full flex flex-col xl:flex-row justify-center gap-20 sm:gap-5 items-center min-h-[80dvh]">
         <div
           className={`${
             showStatus.ongoing && showStatus.status && "bg-green-500/30"
           } ${showStatus.ongoing && !showStatus.status && "bg-red-500/30"} ${
-            !showStatus.ongoing && "bg-white/20 "
+            !showStatus.ongoing && "bg-white/50 "
           } sm:shadow-xl flex flex-col sm:flex-row justify-center items-center gap-5 sm:gap-14 rounded-md sm:h-80 sm:w-[38rem] sm:border`}
         >
           {showStatus.ongoing && (
@@ -87,17 +96,20 @@ const Page = () => {
               loop={true}
             />
           )}
-          {!showStatus.ongoing && <Clock />}
+          {!showStatus.ongoing && <Clock key="clock-1" />}
           {!showStatus.ongoing && (
             <div className="flex flex-col justify-center items-start gap-5">
+              <div className="w-full">
+                <h1 className="text-lg font-bold -mb-5 text-end">ABSENSI</h1>
+              </div>
               <div className="flex flex-col justify-start gap-2">
                 <Label>Nama Karyawan: </Label>
-                <Popover open={open} onOpenChange={setOpen}>
+                <Popover open={open1} onOpenChange={setOpen1}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
-                      aria-expanded={open}
+                      aria-expanded={open1}
                       className={`w-[300px] justify-between ${
                         selectedStaff?.name ? "text-gray-800" : "text-gray-500"
                       }`}
@@ -120,7 +132,7 @@ const Page = () => {
                                 setUserId(
                                   currentValue === userId ? "" : currentValue
                                 );
-                                setOpen(false);
+                                setOpen1(false);
                               }}
                             >
                               <Check
@@ -165,7 +177,95 @@ const Page = () => {
                     Pulang Kerja
                   </span>
                 </div>
-                <Separator />
+              </div>
+              <button
+                onClick={handleSubmit}
+                className={`w-full rounded-md py-1.5 ${
+                  userId && attendanceType
+                    ? "bg-[var(--primary-color)] cursor-pointer"
+                    : "bg-gray-600 cursor-not-allowed"
+                } text-white`}
+              >
+                Konfirmasi Absensi
+              </button>
+            </div>
+          )}
+        </div>
+        <div
+          className={`${
+            showStatus.ongoing && showStatus.status && "bg-green-500/30"
+          } ${showStatus.ongoing && !showStatus.status && "bg-red-500/30"} ${
+            !showStatus.ongoing && "bg-white/50 "
+          } sm:shadow-xl flex flex-col sm:flex-row justify-center items-center gap-5 sm:gap-14 rounded-md sm:h-80 sm:w-[38rem] sm:border`}
+        >
+          {showStatus.ongoing && (
+            <Lottie
+              className="size-80"
+              animationData={
+                (showStatus.ongoing && showStatus.status && successAnimation) ||
+                (showStatus.ongoing && !showStatus.status && failedAnimation)
+              }
+              loop={true}
+            />
+          )}
+          {!showStatus.ongoing && <Clock key="clock-2" />}
+          {!showStatus.ongoing && (
+            <div className="flex flex-col justify-center items-start gap-5">
+              <div className="w-full">
+                <h1 className="text-lg font-bold -mb-5 text-end">ISTIRAHAT</h1>
+              </div>
+              <div className="flex flex-col justify-start gap-2">
+                <Label>Nama Karyawan: </Label>
+                <Popover open={open2} onOpenChange={setOpen2}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open2}
+                      className={`w-[300px] justify-between ${
+                        selectedStaff?.name ? "text-gray-800" : "text-gray-500"
+                      }`}
+                    >
+                      {selectedStaff?.name || "Pilih Karyawan..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search staff..." />
+                      <CommandList>
+                        <CommandEmpty>No staff found.</CommandEmpty>
+                        <CommandGroup>
+                          {staffList.map((staff) => (
+                            <CommandItem
+                              key={staff.uid}
+                              value={staff.uid}
+                              onSelect={(currentValue) => {
+                                setUserId(
+                                  currentValue === userId ? "" : currentValue
+                                );
+                                setOpen2(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  userId === staff.uid
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {staff.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex flex-col justify-start gap-3">
+                <Label className="mb-2">Jenis Absensi: </Label>
                 <div className="flex justify-between gap-3 h-7 w-72">
                   <span
                     className={`flex-1 pl-1 text-sm cursor-pointer ${
@@ -198,7 +298,7 @@ const Page = () => {
                     : "bg-gray-600 cursor-not-allowed"
                 } text-white`}
               >
-                Konfirmasi Absensi
+                Konfirmasi Istirahat
               </button>
             </div>
           )}

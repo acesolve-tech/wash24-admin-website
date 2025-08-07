@@ -10,10 +10,19 @@ import {
   where,
 } from "firebase/firestore";
 
-export async function fetchUsersByRole(role: string = "Staff") {
+export async function fetchUsersByRole(
+  role: string = "Staff",
+  location?: string
+) {
   try {
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("role", "==", role));
+    const conditions = [where("role", "==", role)];
+
+    if (location) {
+      conditions.push(where("location", "==", location));
+    }
+
+    const q = query(usersRef, ...conditions); 
     const querySnapshot = await getDocs(q);
 
     const users = querySnapshot.docs.map((doc) => {

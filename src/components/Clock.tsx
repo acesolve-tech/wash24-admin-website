@@ -1,52 +1,44 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 const Clock: React.FC = () => {
+  const hourRef = useRef<HTMLDivElement>(null);
+  const minutesRef = useRef<HTMLDivElement>(null);
+  const secondsRef = useRef<HTMLDivElement>(null);
+
+  const textHourRef = useRef<HTMLDivElement>(null);
+  const textMinutesRef = useRef<HTMLDivElement>(null);
+  const textSecondsRef = useRef<HTMLDivElement>(null);
+  const textAmPmRef = useRef<HTMLDivElement>(null);
+
+  const dateDayRef = useRef<HTMLSpanElement>(null);
+  const dateMonthRef = useRef<HTMLSpanElement>(null);
+  const dateYearRef = useRef<HTMLSpanElement>(null);
+
   useEffect(() => {
-    const hour = document.getElementById("clock-hour") as HTMLDivElement,
-      minutes = document.getElementById("clock-minutes") as HTMLDivElement,
-      seconds = document.getElementById("clock-seconds") as HTMLDivElement,
-      textHour = document.getElementById("text-hour") as HTMLDivElement,
-      textMinutes = document.getElementById("text-minutes") as HTMLDivElement,
-      textSeconds = document.getElementById("text-seconds") as HTMLDivElement,
-      textAmPm = document.getElementById("text-ampm") as HTMLDivElement,
-      dateDay = document.getElementById("date-day") as HTMLDivElement,
-      dateMonth = document.getElementById("date-month") as HTMLDivElement,
-      dateYear = document.getElementById("date-year") as HTMLDivElement,
-      themeButton = document.getElementById(
-        "theme-button"
-      ) as HTMLButtonElement;
+    const updateClock = () => {
+      const now = new Date();
+      const hh = now.getHours();
+      const mm = now.getMinutes();
+      const ss = now.getSeconds();
 
-    const clock = () => {
-      const date = new Date();
+      if (hourRef.current)
+        hourRef.current.style.transform = `rotateZ(${
+          (hh % 12) * 30 + mm * 0.5
+        }deg)`;
+      if (minutesRef.current)
+        minutesRef.current.style.transform = `rotateZ(${mm * 6}deg)`;
+      if (secondsRef.current)
+        secondsRef.current.style.transform = `rotateZ(${ss * 6}deg)`;
 
-      const hh = date.getHours() * 30,
-        mm = date.getMinutes() * 6,
-        ss = date.getSeconds() * 6;
-
-      if (hour) hour.style.transform = `rotateZ(${hh + mm / 12}deg)`;
-      if (minutes) minutes.style.transform = `rotateZ(${mm}deg)`;
-      if (seconds) seconds.style.transform = `rotateZ(${ss}deg)`;
-    };
-    setInterval(clock, 1000);
-
-    const clockText = () => {
-      const date = new Date();
-
-      let hh = date.getHours(),
-        ampm,
-        mm = date.getMinutes(),
-        ss = date.getSeconds(),
-        day = date.getDate(),
-        month = date.getMonth(),
-        year = date.getFullYear();
-
-      ampm = hh >= 12 ? "PM" : "AM";
-
-      if (textHour) textHour.innerHTML = `${hh < 10 ? "0" : ""}${hh}:`;
-      if (textMinutes) textMinutes.innerHTML = `${mm < 10 ? "0" : ""}${mm}:`;
-      if (textSeconds) textSeconds.innerHTML = `${ss < 10 ? "0" : ""}${ss}`;
-      if (textAmPm) textAmPm.innerHTML = ampm;
+      if (textHourRef.current)
+        textHourRef.current.innerText = `${hh.toString().padStart(2, "0")}:`;
+      if (textMinutesRef.current)
+        textMinutesRef.current.innerText = `${mm.toString().padStart(2, "0")}:`;
+      if (textSecondsRef.current)
+        textSecondsRef.current.innerText = ss.toString().padStart(2, "0") + "";
+      if (textAmPmRef.current)
+        textAmPmRef.current.innerText = hh >= 12 ? "PM" : "AM";
 
       const months = [
         "Jan",
@@ -63,57 +55,19 @@ const Clock: React.FC = () => {
         "Dec",
       ];
 
-      if (dateDay) dateDay.innerHTML = day.toString();
-      if (dateMonth) dateMonth.innerHTML = ` ${months[month]}, `;
-      if (dateYear) dateYear.innerHTML = year.toString();
+      if (dateDayRef.current)
+        dateDayRef.current.innerText = now.getDate().toString();
+      if (dateMonthRef.current)
+        dateMonthRef.current.innerText = ` ${months[now.getMonth()]}, `;
+      if (dateYearRef.current)
+        dateYearRef.current.innerText = now.getFullYear().toString();
     };
-    setInterval(clockText, 1000);
 
-    const getCurrentTheme = () =>
-      document.body.classList.contains("dark-theme") ? "dark" : "light";
-    const getCurrentIcon = () =>
-      themeButton?.classList.contains("bxs-moon") ? "bxs-moon" : "bxs-sun";
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
 
-    const selectedTheme = localStorage.getItem("selected-theme");
-    const selectedIcon = localStorage.getItem("selected-icon");
-
-    if (selectedTheme) {
-      document.body.classList[selectedTheme === "dark" ? "add" : "remove"](
-        "dark-theme"
-      );
-      themeButton?.classList[selectedIcon === "bxs-moon" ? "add" : "remove"](
-        "bxs-moon"
-      );
-    }
-
-    themeButton?.addEventListener("click", () => {
-      document.body.classList.toggle("dark-theme");
-      themeButton?.classList.toggle("bxs-moon");
-      localStorage.setItem("selected-theme", getCurrentTheme());
-      localStorage.setItem("selected-icon", getCurrentIcon());
-    });
+    return () => clearInterval(interval);
   }, []);
-
-  // Get today's date for initial render defaults
-  const now = new Date();
-  const defaultHour = now.getHours().toString().padStart(2, "0");
-  const defaultMinute = now.getMinutes().toString().padStart(2, "0");
-  const defaultSecond = now.getSeconds().toString().padStart(2, "0");
-  const defaultAmPm = now.getHours() >= 12 ? "PM" : "AM";
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
 
   return (
     <>
@@ -222,6 +176,7 @@ const Clock: React.FC = () => {
           }
         `}
       </style>
+
       <div className="clock__container grid">
         <div className="clock__content grid gap-3">
           <div className="clock__circle">
@@ -231,27 +186,25 @@ const Clock: React.FC = () => {
             <span className="clock__nine"></span>
 
             <div className="clock__rounder"></div>
-            <div className="clock__hour" id="clock-hour"></div>
-            <div className="clock__minutes" id="clock-minutes"></div>
-            <div className="clock__seconds" id="clock-seconds"></div>
+            <div className="clock__hour" ref={hourRef}></div>
+            <div className="clock__minutes" ref={minutesRef}></div>
+            <div className="clock__seconds" ref={secondsRef}></div>
 
-            <div className="clock__theme">
-              <i className="bx bxs-moon" id="theme-button"></i>
-            </div>
+            {/* Optional: Remove theme toggle from here */}
           </div>
 
           <div>
             <div className="clock__text">
-              <div id="text-hour">{defaultHour}:</div>
-              <div id="text-minutes">{defaultMinute}:</div>
-              <div id="text-seconds">{defaultSecond}</div>
-              <div id="text-ampm">{defaultAmPm}</div>
+              <div ref={textHourRef}>00:</div>
+              <div ref={textMinutesRef}>00:</div>
+              <div ref={textSecondsRef}>00</div>
+              <div ref={textAmPmRef}>AM</div>
             </div>
 
             <div className="clock__date">
-              <span id="date-day">{now.getDate()}</span>
-              <span id="date-month"> {months[now.getMonth()]}, </span>
-              <span id="date-year">{now.getFullYear()}</span>
+              <span ref={dateDayRef}>00</span>
+              <span ref={dateMonthRef}> Jan, </span>
+              <span ref={dateYearRef}>0000</span>
             </div>
           </div>
         </div>
