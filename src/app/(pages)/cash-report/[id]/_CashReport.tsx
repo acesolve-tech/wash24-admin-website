@@ -16,7 +16,7 @@ import CashReportForm from "@/components/popup/cash-report-form";
 const Page = () => {
   const { id } = useParams();
   const location = LOCATIONS.find((loc) => loc.key === id);
-  const title = location?.title || "Unknown Location";
+  const title = location?.title || "Kas";
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>([]);

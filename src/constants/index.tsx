@@ -77,14 +77,10 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     title: "Tunai",
     icon: <Banknote className="size-7" />,
     path: "#",
-    subItems: generateLocationSubItems("/cash-report"),
-  },
-  {
-    title: "Kas",
-    icon: <Banknote className="size-7" />,
-    path: "#",
-    subItems: generateLocationSubItems("/cash"),
-    role: ["Master"],
+    subItems: [
+      ...generateLocationSubItems("/cash-report"),
+      { title: "Kas", path: "/cash-report/kas" },
+    ],
   },
   {
     title: "Stok",
