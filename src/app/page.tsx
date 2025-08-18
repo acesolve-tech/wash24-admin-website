@@ -117,6 +117,8 @@ export default function Home() {
           router.push("/delivery/sby2");
         } else if (email.startsWith("sbytimur")) {
           router.push("/delivery/sby3");
+        } else if (email.startsWith("sbyselatan")) {
+          router.push("/delivery/sby4");
         } else {
           router.push("/delivery/sby");
         }
