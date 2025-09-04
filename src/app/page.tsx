@@ -109,7 +109,11 @@ export default function Home() {
       if (userLocation === "malang") {
         router.push("/delivery/mlg");
       } else if (userLocation === "jakarta") {
-        router.push("/delivery/jkt3");
+        if (email.startsWith("jktselatan")) {
+          router.push("/delivery/jkt3");
+        } else if (email.startsWith("jktbarat")) {
+          router.push("/delivery/jkt4");
+        }
       } else if (userLocation === "surabaya") {
         if (email.startsWith("sbypusat")) {
           router.push("/delivery/sby");

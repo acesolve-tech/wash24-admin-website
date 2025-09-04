@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
 
   let userRole = "";
   let userLocation = "";
+  let userEmail = "";
   let isAuthenticated = false;
 
   if (token) {
@@ -16,6 +17,7 @@ export async function middleware(request: NextRequest) {
       const decoded = jwt.decode(token) as JwtPayload | null;
       if (decoded && decoded.role) {
         userRole = decoded.role;
+        userEmail = decoded.email;
         userLocation = decoded.location.toLowerCase();
         isAuthenticated = true;
       } else {
@@ -40,13 +42,25 @@ export async function middleware(request: NextRequest) {
     if (userLocation === "malang") {
       locationPath = "/delivery/mlg";
     } else if (userLocation === "surabaya") {
-      locationPath = "/delivery/sby";
-    } else if (userLocation === "surabaya-2") {
-      locationPath = "/delivery/sby2";
-    } else if (userLocation === "surabaya-3") {
-      locationPath = "/delivery/sby3";
-    } else if (userLocation === "jakarta" || userLocation === "jakarta-3") {
-      locationPath = "/delivery/jkt3";
+      if (userEmail?.startsWith("sbypusat")) {
+        locationPath = "/delivery/sby";
+      }
+      if (userEmail?.startsWith("sbybarat")) {
+        locationPath = "/delivery/sby2";
+      }
+      if (userEmail?.startsWith("sbytimur")) {
+        locationPath = "/delivery/sby3";
+      }
+      if (userEmail?.startsWith("sbyselatan")) {
+        locationPath = "/delivery/sby4";
+      }
+    } else if (userLocation === "jakarta") {
+      if (userEmail?.startsWith("jktselatan")) {
+        locationPath = "/delivery/jkt3";
+      }
+      if (userEmail?.startsWith("jktbarat")) {
+        locationPath = "/delivery/jkt4";
+      }
     }
 
     if (locationPath) {

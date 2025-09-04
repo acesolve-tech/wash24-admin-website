@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { SIDEBAR_ITEMS } from "@/constants";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, CornerDownRight, LogOut } from "lucide-react"; 
+import { ChevronDown, ChevronUp, CornerDownRight, LogOut } from "lucide-react";
 import { userStore } from "@/store/user";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth/logout";
@@ -141,7 +141,12 @@ export default function UserLayout({
                             }
 
                             if (user.location === "Jakarta") {
-                              return sub.title === "Jakarta Selatan";
+                              if (user.email?.startsWith("jktselatan")) {
+                                return sub.title === "Jakarta Selatan";
+                              }
+                              if (user.email?.startsWith("jktbarat")) {
+                                return sub.title === "Jakarta Barat";
+                              }
                             }
 
                             if (user.location === "Surabaya") {
@@ -153,6 +158,9 @@ export default function UserLayout({
                               }
                               if (user.email?.startsWith("sbytimur")) {
                                 return sub.title === "Surabaya Timur";
+                              }
+                              if (user.email?.startsWith("sbyselatan")) {
+                                return sub.title === "Surabaya Selatan";
                               }
                             }
 
