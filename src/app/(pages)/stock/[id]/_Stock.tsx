@@ -1,11 +1,9 @@
 "use client";
 import { Label } from "@/components/ui/label";
 import { LOCATIONS } from "@/constants";
-import { userStore } from "@/store/user";
 import { useParams } from "next/navigation";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Loading from "@/components/Loading";
-import CashReportForm from "@/components/popup/cash-report-form";
 import {
   Table,
   TableBody,
@@ -16,30 +14,41 @@ import {
 } from "@/components/ui/table";
 import { Timestamp } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { BadgeCheck } from "lucide-react";
-import { cloneCollection, fetchStock, saveStock } from "@/lib/stock";
+import { fetchStock, fetchStockLogs, saveStock } from "@/lib/stock";
+import { formatTimestampShort } from "@/lib/utils";
 
-const Page = () => {  
+const Page = () => {
   const { id } = useParams();
   const location = LOCATIONS.find((loc) => loc.key === id);
-  const title = location?.title || "Unknown Location"; 
+  const title = location?.title || "Unknown Location";
 
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<{ name: string; stock: number }[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [data, setData] = useState<
+    {
+      id: string;
+      name: string;
+      stokAwal: number;
+      barangMasuk: number;
+      barangKeluar: number;
+      lastUpdated: Timestamp | null;
+    }[]
+  >([]);
   const [backupStockData, setBackupStockData] = useState<typeof data>([]);
-  const [lastUpdated, setLastUpdated] = useState<Timestamp | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [openEditForm, setOpenEditForm] = useState({
-    status: false,
-    details: null,
-  });
 
   const fetchData = async () => {
     setLoading(true);
     const result = await fetchStock(Array.isArray(id) ? id[0] : id ?? "");
-    setData(result.data?.stockData ?? []);
-    setLastUpdated(result.data?.lastUpdate ?? null);
+    setData(result.data);
+    setBackupStockData(result.data);
+
+    const logResult = await fetchStockLogs(
+      Array.isArray(id) ? id[0] : id ?? ""
+    );
+    setLogs(logResult.data);
+
     setLoading(false);
   };
 
@@ -48,27 +57,46 @@ const Page = () => {
   }, []);
 
   const handleAddRow = () => {
-    setData((prev) => [...prev, { name: "", stock: 0 }]);
+    setData((prev) => [
+      ...prev,
+      {
+        id: "",
+        name: "",
+        stokAwal: 0,
+        barangMasuk: 0,
+        barangKeluar: 0,
+        lastUpdated: null,
+      },
+    ]);
   };
 
   const handleSave = async () => {
-    await saveStock(Array.isArray(id) ? id[0] : id ?? "", data);
+    await saveStock(
+      Array.isArray(id) ? id[0] : id ?? "",
+      data,
+      backupStockData
+    );
     setIsEditing(false);
     fetchData();
   };
-  
+
+  const renderValue = (value: any) => {
+    if (value === null || value === undefined) return "-";
+    if (typeof value === "object") {
+      return Object.entries(value)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(", ");
+    }
+    return String(value);
+  };
 
   return (
     <div className="min-h-[calc(100dvh-40px)] overflow-y-auto space-y-6">
-      <Label className="text-3xl font-bold w-fit">Stok {title}</Label>{" "}
-      <div className="flex justify-between items-center py-1 pr-3">
-        <h1 className="text-gray-700 px-1">
-          Last Updated:{" "}
-          {lastUpdated ? new Date(lastUpdated.toDate()).toLocaleString() : "-"}
-        </h1>
+      <Label className="text-3xl font-bold w-fit">Stok {title}</Label>
+      <div className="flex justify-end items-center py-1 pr-3">
         {!isEditing ? (
           <button
-            className="text-base text-blue-600 rounded-md cursor-pointer"
+            className="text-base text-blue-600 cursor-pointer"
             onClick={() => {
               setBackupStockData(data?.map((item) => ({ ...item })));
               setIsEditing(true);
@@ -78,7 +106,7 @@ const Page = () => {
           </button>
         ) : (
           <button
-            className="text-base text-red-600 rounded-md cursor-pointer"
+            className="text-base text-red-600 cursor-pointer"
             onClick={() => {
               setData(backupStockData);
               setIsEditing(false);
@@ -88,22 +116,26 @@ const Page = () => {
           </button>
         )}
       </div>
-      <button onClick={() => cloneCollection("cash-report-sby-2", "cash-report-sby2")}>
-        Clone
-      </button>
+
+      {/* TABLE */}
       <div className="w-full rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">No.</TableHead>
+              <TableHead className="w-[80px]">No.</TableHead>
               <TableHead>Nama Barang</TableHead>
-              <TableHead className="">Stok</TableHead>
+              <TableHead className="">Stok Awal</TableHead>
+              <TableHead>Barang Masuk</TableHead>
+              <TableHead>Barang Keluar</TableHead>
+              <TableHead>Stok Akhir</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
-            {data?.map((item: any, index: number) => (
+            {data?.map((item, index) => (
               <TableRow key={index}>
                 <TableCell className="font-medium">{index + 1}</TableCell>
+
                 <TableCell>
                   {isEditing ? (
                     <Input
@@ -114,26 +146,73 @@ const Page = () => {
                         updatedData[index].name = e.target.value;
                         setData(updatedData);
                       }}
-                      className="w-full"
                     />
                   ) : (
                     item.name
                   )}
                 </TableCell>
-                <TableCell className="">
+
+                <TableCell>
                   {isEditing ? (
                     <Input
                       type="number"
-                      value={item.stock}
+                      value={item.stokAwal}
                       onChange={(e) => {
                         const updatedData = [...data];
-                        updatedData[index].stock = parseFloat(e.target.value);
+                        updatedData[index].stokAwal = parseFloat(
+                          e.target.value
+                        );
                         setData(updatedData);
                       }}
                       className="w-24 text-right"
                     />
                   ) : (
-                    item.stock.toFixed(2)
+                    <span>{item.stokAwal}</span>
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      value={item.barangMasuk}
+                      onChange={(e) => {
+                        const updatedData = [...data];
+                        updatedData[index].barangMasuk = parseFloat(
+                          e.target.value
+                        );
+                        setData(updatedData);
+                      }}
+                      className="w-24 text-right"
+                    />
+                  ) : (
+                    <span>{item.barangMasuk}</span>
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      value={item.barangKeluar}
+                      onChange={(e) => {
+                        const updatedData = [...data];
+                        updatedData[index].barangKeluar = parseFloat(
+                          e.target.value
+                        );
+                        setData(updatedData);
+                      }}
+                      className="w-24 text-right"
+                    />
+                  ) : (
+                    <span>{item.barangKeluar}</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {!isEditing && (
+                    <span>
+                      {item.stokAwal + item.barangMasuk - item.barangKeluar}
+                    </span>
                   )}
                 </TableCell>
               </TableRow>
@@ -141,35 +220,72 @@ const Page = () => {
           </TableBody>
         </Table>
       </div>
+
       {isEditing && (
-        <div className="flex justify-between gap-5 items-center">
+        <div className="flex justify-between items-center">
           <button
             onClick={handleAddRow}
-            className="cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-1.5 rounded-md"
+            className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-1.5 rounded-md"
           >
             + Tambah Stok
           </button>
+
           <button
-            className="cursor-pointer bg-purple-700 hover:bg-purple-800 text-white px-5 py-1.5 rounded-md flex justify-center items-center gap-1"
             onClick={handleSave}
+            className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-1.5 rounded-md flex items-center gap-1"
           >
             <BadgeCheck className="size-4" /> Simpan Stok
           </button>
         </div>
       )}
-      {openEditForm.status && (
-        <div
-          className="fixed w-screen h-screen top-0 left-0 bg-black/50 flex justify-center items-center z-10"
-          onClick={() => setOpenEditForm({ status: false, details: null })}
-        >
-          <CashReportForm
-            fetchData={fetchData}
-            setOpenEditForm={setOpenEditForm}
-            openEditForm={openEditForm}
-            collectionName={Array.isArray(id) ? id[0] : id ?? ""}
-          />
-        </div>
-      )}
+
+      <div className="mt-10">
+        <h2 className="text-xl font-bold mb-3">History Log</h2>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tanggal</TableHead>
+              <TableHead>Item</TableHead>
+              <TableHead>Field</TableHead>
+              <TableHead>Old</TableHead>
+              <TableHead>New</TableHead>
+              <TableHead>User</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {logs.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-4 text-gray-500"
+                >
+                  No history yet.
+                </TableCell>
+              </TableRow>
+            )}
+
+            {logs.map((log, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  {log.timestamp ? formatTimestampShort(log.timestamp) : "-"}
+                </TableCell>
+
+                <TableCell>{log.itemName ?? "-"}</TableCell>
+                <TableCell className="capitalize">{log.field}</TableCell>
+
+                {/* FIXED: Safe rendering */}
+                <TableCell>{renderValue(log.oldValue)}</TableCell>
+                <TableCell>{renderValue(log.newValue)}</TableCell>
+
+                <TableCell>{log.updatedBy ?? "-"}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
       {loading && <Loading />}
     </div>
   );

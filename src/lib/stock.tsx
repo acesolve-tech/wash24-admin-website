@@ -1,71 +1,125 @@
 import { db } from "@/config/firebase";
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+} from "firebase/firestore";
 
-export async function saveStock(id: string, data: any) {
-  try {
-    const stockDocRef = doc(db, "stocks", id);
-    await setDoc(stockDocRef, {
-      data: data,
-      lastUpdate: serverTimestamp(),
-    });
+export async function saveStock(id: string, newData: any[], oldData: any[]) {
+  const itemsRef = collection(db, "stocks", id, "items");
+  const logsRef = collection(db, "stocks", id, "logs");
 
-    return {
-      success: true,
-      data: null,
-      message: "Data stok berhasil disimpan",
+  const ops: Promise<any>[] = [];
+
+  newData.forEach((item, index) => {
+    const oldItem = oldData[index];
+    const itemRef = doc(itemsRef, item.id || crypto.randomUUID());
+
+    ops.push(
+      setDoc(itemRef, {
+        name: item.name,
+        stokAwal: item.stokAwal || 0,
+        barangMasuk: item.barangMasuk || 0,
+        barangKeluar: item.barangKeluar || 0,
+        lastUpdated: serverTimestamp(),
+      })
+    );
+
+    if (!oldItem) {
+      const logRef = doc(logsRef);
+      ops.push(
+        setDoc(logRef, {
+          itemId: itemRef.id,
+          itemName: item.name,
+          field: "created",
+          oldValue: null,
+          newValue: {
+            stokAwal: item.stokAwal,
+            barangMasuk: item.barangMasuk,
+            barangKeluar: item.barangKeluar,
+          },
+          updatedBy: "admin",
+          timestamp: serverTimestamp(),
+        })
+      );
+      return;
+    }
+
+    const logIfChanged = (field: string, oldVal: any, newVal: any) => {
+      if (oldVal === newVal) return;
+      const logRef = doc(logsRef);
+      ops.push(
+        setDoc(logRef, {
+          itemId: itemRef.id,
+          itemName: item.name,
+          field,
+          oldValue: oldVal,
+          newValue: newVal,
+          updatedBy: "admin",
+          timestamp: serverTimestamp(),
+        })
+      );
     };
-  } catch (error) {
-    return {
-      success: false,
-      data: null,
-      message: "Data stok gagal disimpan",
-    };
-  }
+
+    logIfChanged("name", oldItem.name, item.name);
+    logIfChanged("stokAwal", oldItem.stokAwal, item.stokAwal);
+    logIfChanged("barangMasuk", oldItem.barangMasuk, item.barangMasuk);
+    logIfChanged("barangKeluar", oldItem.barangKeluar, item.barangKeluar);
+  });
+
+  await Promise.all(ops);
+  return { success: true };
 }
 
 export async function fetchStock(id: string) {
-  try {
-    const stockDocRef = doc(db, "stocks", id);
-    const stockDocSnap = await getDoc(stockDocRef);
+  const q = query(
+    collection(db, "stocks", id, "items"),
+    orderBy("lastUpdated", "desc")
+  );
 
-    if (stockDocSnap.exists()) {
-      const data = stockDocSnap.data();
-      const stockArray = Array.isArray(data.data) ? data.data : [];
-      return {
-        success: true,
-        data: {
-          stockData: stockArray,
-          lastUpdate: data.lastUpdate,
-        },
-        message: "Data stok berhasil diambil",
-      };
-    }
-    return {
-      success: false,
-      data: null,
-      message: "Data stok kosong",
-    };
-  } catch (error) {
-    return {
-      success: false,
-      data: null,
-      message: "Data stok gagal diambil",
-    };
-  }
-} 
+  const snap = await getDocs(q);
 
-export async function cloneCollection(source: string, target: string) {
+  const items = snap.docs.map((d) => ({
+    id: d.id,
+    name: d.data().name || "",
+    stokAwal: d.data().stokAwal || 0,
+    barangMasuk: d.data().barangMasuk || 0,
+    barangKeluar: d.data().barangKeluar || 0,
+    lastUpdated: d.data().lastUpdated || null,
+  }));
+
+  return { success: true, data: items };
+}
+
+export async function fetchStockLogs(id: string) {
   try {
-    console.log("MASUK")
-    const snapshot = await getDocs(collection(db, source));
-    const promises = snapshot.docs.map((docSnap) =>
-      setDoc(doc(db, target, docSnap.id), docSnap.data())
+    const q = query(
+      collection(db, "stocks", id, "logs"),
+      orderBy("timestamp", "desc")
     );
-    await Promise.all(promises);
-    console.log(`Cloned ${snapshot.size} documents from ${source} to ${target}`);
-    return { success: true };
+
+    const logsSnap = await getDocs(q);
+
+    const logs = logsSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return {
+      success: true,
+      data: logs,
+    };
   } catch (error) {
-    console.error("Error cloning collection:", error);
-    return { success: false, error };
+    return {
+      success: false,
+      data: [],
+      message: "Failed to fetch logs",
+    };
   }
 }
