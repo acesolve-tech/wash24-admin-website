@@ -44,21 +44,20 @@ export async function middleware(request: NextRequest) {
     } else if (userLocation === "surabaya") {
       if (userEmail?.startsWith("sbypusat")) {
         locationPath = "/delivery/sby";
-      }
-      if (userEmail?.startsWith("sbybarat")) {
+      } else if (userEmail?.startsWith("sbybarat")) {
         locationPath = "/delivery/sby2";
-      }
-      if (userEmail?.startsWith("sbytimur")) {
+      } else if (userEmail?.startsWith("sbytimur")) {
         locationPath = "/delivery/sby3";
-      }
-      if (userEmail?.startsWith("sbyselatan")) {
+      } else if (userEmail?.startsWith("sbyselatan")) {
         locationPath = "/delivery/sby4";
+      } else {
+        locationPath = "/delivery/sby";
       }
     } else if (userLocation === "jakarta") {
       if (userEmail?.startsWith("jktselatan")) {
         locationPath = "/delivery/jkt3";
-      }
-      if (userEmail?.startsWith("jktbarat")) {
+      } else {
+        // else if (userEmail?.startsWith("jktbarat")) {
         locationPath = "/delivery/jkt4";
       }
     }
@@ -67,13 +66,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(locationPath, request.url));
     }
 
-    return NextResponse.redirect(new URL("/not-found", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   const matched = ROUTE_PERMISSIONS.find(({ path }) => path === pathname);
 
   if (!matched) {
-    return NextResponse.redirect(new URL("/not-found", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   if (!matched.role || matched.role.length === 0) {
