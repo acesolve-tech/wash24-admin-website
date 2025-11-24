@@ -220,6 +220,43 @@ const getColumns = (
     },
   },
   {
+    header: "Durasi Telat",
+    cell: ({ row }) => {
+      const clock_in = row.getValue("clock_in");
+
+      if (clock_in && clock_in instanceof Timestamp) {
+        const { seconds, nanoseconds } = clock_in;
+        const milliseconds = seconds * 1000 + nanoseconds / 1000000;
+        const formattedDate = new Date(milliseconds);
+
+        const hours = formattedDate.getHours();
+        const minutes = formattedDate.getMinutes();
+
+        const formatRupiah = (value: number) => {
+          return new Intl.NumberFormat("id-ID").format(value);
+        };
+
+        if (hours < 12 && hours >= 6) {
+          return `${hours - 6}:${minutes
+            .toString()
+            .padStart(2, "0")} (Rp.${formatRupiah(
+            ((hours - 6) * 60 + minutes) * 500
+          )})`;
+        }
+        if (hours < 23 && hours >= 18) {
+          return `${hours - 18}:${minutes
+            .toString()
+            .padStart(2, "0")} (Rp.${formatRupiah(
+            ((hours - 18) * 60 + minutes) * 500
+          )})`;
+        }
+        return <div className=""> - </div>;
+      } else {
+        return <div className=""> - </div>;
+      }
+    },
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const user = userStore((state: any) => state.user);
