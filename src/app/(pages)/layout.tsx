@@ -104,34 +104,7 @@ export default function UserLayout({
                     )}
 
                     {hasSubItems && isOpen && (
-                      <div className="mx-3 pb-2 flex flex-col">
-                        {/* {item.subItems
-                          .filter((sub) => {
-                            if (user.role === "Master") return true;
-
-                            const locMap: Record<string, string[]> = {
-                              Surabaya: [
-                                "Surabaya Pusat",
-                                "Surabaya Barat",
-                                "Surabaya Timur",
-                              ],
-                              Jakarta: ["Jakarta Selatan"],
-                              Malang: ["Malang"],
-                            };
-
-                            return locMap[user.location]?.includes(sub.title);
-                          })
-                          .map((sub) => (
-                            <Link
-                              key={sub.title}
-                              href={sub.path}
-                              className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-3 cursor-pointer py-3 border-b"
-                            >
-                              <CornerDownRight className="size-5 mb-0.5 opacity-50" />
-                              <span className="text-base">{sub.title}</span>
-                            </Link>
-                          ))} */}
-
+                      <div className="mx-3 pb-2 flex flex-col">  
                         {item.subItems
                           .filter((sub) => {
                             if (user.role === "Master") return true;
@@ -144,8 +117,8 @@ export default function UserLayout({
                               if (user.email?.startsWith("jktselatan")) {
                                 return sub.title === "Jakarta Selatan";
                               }
-                              if (user.email?.startsWith("jktbarat")) {
-                                return sub.title === "Jakarta Barat";
+                              if (user.email?.startsWith("jktpusat")) {
+                                return sub.title === "Jakarta Pusat"
                               }
                             }
 

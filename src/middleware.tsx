@@ -56,8 +56,7 @@ export async function middleware(request: NextRequest) {
     } else if (userLocation === "jakarta") {
       if (userEmail?.startsWith("jktselatan")) {
         locationPath = "/delivery/jkt3";
-      } else {
-        // else if (userEmail?.startsWith("jktbarat")) {
+      } else { 
         locationPath = "/delivery/jkt4";
       }
     }

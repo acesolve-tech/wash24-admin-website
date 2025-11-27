@@ -93,7 +93,7 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const result = await login(email, password);
+      const result = await login(email.trim(), password.trim());
       if (!result.success) {
         setPassword("");
         console.log(result.message);
@@ -111,7 +111,7 @@ export default function Home() {
       } else if (userLocation === "jakarta") {
         if (email.startsWith("jktselatan")) {
           router.push("/delivery/jkt3");
-        } else if (email.startsWith("jktbarat")) {
+        } else if (email.startsWith("jktpusat")) {
           router.push("/delivery/jkt4");
         }
       } else if (userLocation === "surabaya") {

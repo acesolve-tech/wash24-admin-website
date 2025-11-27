@@ -32,12 +32,13 @@ const Page = () => {
   return (
     <div className="min-h-[calc(100dvh-40px)] overflow-y-auto space-y-6">
       <Label className="text-3xl font-bold w-fit">
-        Riawayat Delivery {title}
+        Riwayat Delivery {title}
       </Label>
       <div className="w-full flex justify-center items-start min-h-[80dvh]">
         <DataTable
           columns={columns}
           data={data}
+          collectionName={collectionName}
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
         />

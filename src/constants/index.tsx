@@ -20,7 +20,7 @@ export const LOCATIONS = [
   { title: "Surabaya Timur", key: "sby3", collectionName: "surabaya-3" },
   { title: "Surabaya Selatan", key: "sby4", collectionName: "surabaya-4" },
   { title: "Jakarta Selatan", key: "jkt3", collectionName: "jakarta-3" },
-  { title: "Jakarta Barat", key: "jkt4", collectionName: "jakarta-4" },
+  { title: "Jakarta Pusat", key: "jkt4", collectionName: "jakarta-4" },
 ];
 
 const generateLocationSubItems = (
