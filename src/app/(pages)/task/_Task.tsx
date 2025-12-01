@@ -29,6 +29,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 const Page = () => {
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [tasks, setTasks] = useState<{ high: any[]; other: any[] }>({
     high: [],
@@ -113,9 +114,38 @@ const Page = () => {
           + Tambah Tugas
         </div>
       </div>
-      <div className="flex w-full gap-3"> 
+      <div className="flex w-full gap-3">
         <div className="flex flex-col w-1/2 gap-3">
-          <Label className="text-red-500">Prioritas Tinggi</Label>
+          <div className="flex justify-between items-center">
+            <Label className="text-red-500">Prioritas Tinggi</Label>
+            <div className="relative self-end">
+              <button
+                onClick={() => {
+                  const text = tasks.high
+                    .map(
+                      (item) =>
+                        `- ${item.title}\n  Description: ${item.description}\n  Note: ${item.note}`
+                    )
+                    .join("\n\n");
+
+                  navigator.clipboard.writeText(text);
+                  setCopied(true);
+
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                className="text-sm text-blue-600 cursor-pointer hover:underline py-0"
+              >
+                Share (Copy All)
+              </button>
+
+              {copied && (
+                <div className="absolute right-0 -top-[100%] mt-1 px-2 py-1 text-xs rounded bg-black text-white shadow">
+                  Copied!
+                </div>
+              )}
+            </div>
+          </div>
+
           <DndContext
             sensors={useSensors(useSensor(PointerSensor))}
             collisionDetection={closestCenter}
@@ -216,7 +246,7 @@ const Page = () => {
 
         {/* Other Priority */}
         <div className="flex flex-col w-1/2 gap-3">
-          <Label className="text-yellow-500">Prioritas Rendah</Label>
+          <Label className="text-yellow-500 my-1">Prioritas Rendah</Label>
           <DndContext
             sensors={useSensors(useSensor(PointerSensor))}
             collisionDetection={closestCenter}
