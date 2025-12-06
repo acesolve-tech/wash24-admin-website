@@ -16,7 +16,7 @@ export async function fetchUsersByRole(
 ) {
   try {
     const usersRef = collection(db, "users");
-    const conditions = [where("role", "==", role)];
+    const conditions = [where("role", "==", role)]; 
 
     if (location) {
       conditions.push(where("location", "==", location));

@@ -49,13 +49,12 @@ const updateOrAddDocument = async (name: string, selectedOption: string) => {
 
   const data = {
     name: name,
-    date: currentDate,
     [selectedOption]: serverTimestamp(),
   };
 
   let attendanceDocRef = doc(db, "attendance", `${name}-${currentDate}`);
 
-  if (selectedOption === "clock_out") {
+  if (selectedOption !== "clock_in") { 
     if (!documentExists) {
       const yesterdayDate = getPreviousDateString();
       documentExists = await checkDocumentExistence(name, yesterdayDate);
@@ -66,6 +65,7 @@ const updateOrAddDocument = async (name: string, selectedOption: string) => {
   if (documentExists) {
     setDoc(attendanceDocRef, data, { merge: true });
   } else if (selectedOption === "clock_in") {
+    data.date = currentDate;
     setDoc(attendanceDocRef, data);
   }
 };
@@ -115,7 +115,7 @@ export const insertOrUpdateAttendance = async (
 export const fetchAttendance = async (selectedDate: Date) => {
   try {
     const userQuerySnapshot = await getDocs(
-      query(collection(db, "users"), where("role", "==", "Staff"))
+      query(collection(db, "users"), where("role", "==", "Staff")) 
     );
     const fetchedPeople = userQuerySnapshot.docs
       .map((doc) => {

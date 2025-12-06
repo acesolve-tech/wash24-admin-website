@@ -157,19 +157,11 @@ export async function downloadToExcel(year: number, month: number) {
               const hours = formattedDate.getHours();
               const minutes = formattedDate.getMinutes();
 
-              const formatRupiah = (value: number) => {
-                return new Intl.NumberFormat("id-ID").format(value);
-              };
-
               if (hours < 12 && hours >= 6) {
-                return `${hours - 6}:${minutes
-                  .toString()
-                  .padStart(2, "0")}`;
+                return `${hours - 6}:${minutes.toString().padStart(2, "0")}`;
               }
               if (hours < 23 && hours >= 18) {
-                return `${hours - 18}:${minutes
-                  .toString()
-                  .padStart(2, "0")}`;
+                return `${hours - 18}:${minutes.toString().padStart(2, "0")}`;
               }
             }
             return "-";
@@ -189,23 +181,15 @@ export async function downloadToExcel(year: number, month: number) {
 
               const hours = formattedDate.getHours();
               const minutes = formattedDate.getMinutes();
-
-              const formatRupiah = (value: number) => {
-                return new Intl.NumberFormat("id-ID").format(value);
-              };
-
+  
               if (hours < 12 && hours >= 6) {
-                return `Rp.${formatRupiah(
-                  ((hours - 6) * 60 + minutes) * 500
-                )}`;
+                return ((hours - 6) * 60 + minutes) * 500;
               }
               if (hours < 23 && hours >= 18) {
-                return `Rp.${formatRupiah(
-                  ((hours - 18) * 60 + minutes) * 500
-                )}`;
+                return ((hours - 18) * 60 + minutes) * 500;
               }
             }
-            return "-";
+            return "";
           },
         },
         {
