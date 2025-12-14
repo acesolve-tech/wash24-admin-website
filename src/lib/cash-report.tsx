@@ -61,7 +61,7 @@ export async function fetchCashReport(collectionName: string) {
       message: "Data cash report berhasil diambil",
     };
   }
-} 
+}
 
 const convertBase64ToFirebase = async (photo: string) => {
   if (!photo?.startsWith("data:image")) {
@@ -88,15 +88,12 @@ export async function addCashReport(
 ) {
   try {
     const imageUrl = await convertBase64ToFirebase(photo);
-    const docRef = await addDoc(
-      collection(db, `cash-report-${collectionName}`),
-      {
-        date: new Date(),
-        [cashType]: amount,
-        information,
-        note: imageUrl,
-      }
-    );
+    await addDoc(collection(db, `cash-report-${collectionName}`), {
+      date: new Date(),
+      [cashType]: amount,
+      information,
+      note: imageUrl,
+    });
 
     return {
       success: true,

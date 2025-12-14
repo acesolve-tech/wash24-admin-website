@@ -3,16 +3,6 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Separator } from "../ui/separator";
-import { Timestamp } from "firebase/firestore";
-import { updateAttendance } from "@/lib/attendance";
-import { addOrUpdateUser, removeUser } from "@/lib/staff";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { BadgeCheck } from "lucide-react";
 import LiveCamera from "../live-camera";
 import {
@@ -52,7 +42,7 @@ function CashReportForm(props: CashReportFormProps) {
     const details = props.openEditForm?.details;
     if (actionType === "Save") {
       if (!details?.id) {
-        const result = await addCashReport(
+        await addCashReport(
           photo ? photo : "",
           props.collectionName,
           cashType,
@@ -60,7 +50,7 @@ function CashReportForm(props: CashReportFormProps) {
           information
         );
       } else {
-        const result = await updateCashReport(
+        await updateCashReport(
           props.collectionName,
           details?.id,
           information,
@@ -71,7 +61,7 @@ function CashReportForm(props: CashReportFormProps) {
         );
       }
     } else if (actionType === "Delete") {
-      const result = await deleteCashReport(props.collectionName, details?.id);
+      await deleteCashReport(props.collectionName, details?.id);
     }
 
     props.setOpenEditForm({ status: false, details: null });

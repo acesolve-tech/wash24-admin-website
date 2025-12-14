@@ -29,11 +29,11 @@ const Page = () => {
   const fetchData = async () => {
     setLoading(true);
     const result = await fetchCashReport(Array.isArray(id) ? id[0] : id ?? "");
-    console.log(result.data?.cashReport); 
+    console.log(result.data?.cashReport);
     setData(result.data?.cashReport);
     setTotal(result.data?.total ?? 0);
     setLoading(false);
-  }; 
+  };
 
   useEffect(() => {
     fetchData();
@@ -47,7 +47,7 @@ const Page = () => {
         data={data}
         setOpenEditForm={setOpenEditForm}
         total={total}
-      /> 
+      />
       {openEditForm.status && (
         <div
           className="fixed w-screen h-screen top-0 left-0 bg-black/50 flex justify-center items-center z-10"
@@ -69,7 +69,7 @@ const Page = () => {
 export default Page;
 const getColumns = (
   setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>
-): ColumnDef<CashReport>[] => [ 
+): ColumnDef<CashReport>[] => [
   {
     header: "Tanggal",
     accessorKey: "date",
@@ -84,12 +84,15 @@ const getColumns = (
         const day = formattedDate.getDate();
         const month = formattedDate.getMonth() + 1;
         const year = formattedDate.getFullYear();
+        const hours = formattedDate.getHours();
+        const minutes = formattedDate.getMinutes();
 
-        // Pad single-digit day and month with leading zero
         const paddedDay = day < 10 ? `0${day}` : `${day}`;
         const paddedMonth = month < 10 ? `0${month}` : `${month}`;
+        const paddedHours = hours < 10 ? `0${hours}` : `${hours}`;
+        const paddedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
 
-        const formatted = `${paddedDay}/${paddedMonth}/${year}`;
+        const formatted = `${paddedDay}/${paddedMonth}/${year} ${paddedHours}:${paddedMinutes}`;
 
         return <div className="font-medium">{formatted}</div>;
       } else {

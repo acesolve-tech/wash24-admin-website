@@ -49,12 +49,11 @@ async function getStaffNoKurir() {
     query(collection(db, "users"), where("role", "==", "Staff"))
   );
 
-  const fetchedPeople = userQuerySnapshot.docs
-    .map((doc) => {
-      const data = doc.data() as User;
-      return { ...data, id: doc.id };
-    })
-    .filter((person) => !person.name.startsWith("Kurir"));
+  const fetchedPeople = userQuerySnapshot.docs.map((doc) => {
+    const data = doc.data() as User;
+    return { ...data, id: doc.id };
+  });
+  // .filter((person) => !person.name.startsWith("Kurir"));
 
   return fetchedPeople;
 }
@@ -67,7 +66,7 @@ export async function downloadToExcel(year: number, month: number) {
   const columns: IJsonSheet[] = [];
 
   for (const user of users) {
-    const { name } = user;
+    const { name, position } = user;
     const AttendanceCollection = collection(db, "attendance");
     const AttendanceQuery = query(
       AttendanceCollection,
@@ -160,6 +159,14 @@ export async function downloadToExcel(year: number, month: number) {
               if (hours < 12 && hours >= 6) {
                 return `${hours - 6}:${minutes.toString().padStart(2, "0")}`;
               }
+              if (
+                hours < 18 &&
+                hours >= 15 &&
+                (name.toLowerCase().includes("kurir") ||
+                  position.toLowerCase().includes("kurir"))
+              ) {
+                return `${hours - 15}:${minutes.toString().padStart(2, "0")}`;
+              }
               if (hours < 23 && hours >= 18) {
                 return `${hours - 18}:${minutes.toString().padStart(2, "0")}`;
               }
@@ -181,9 +188,17 @@ export async function downloadToExcel(year: number, month: number) {
 
               const hours = formattedDate.getHours();
               const minutes = formattedDate.getMinutes();
-  
+
               if (hours < 12 && hours >= 6) {
                 return ((hours - 6) * 60 + minutes) * 500;
+              }
+              if (
+                hours < 18 &&
+                hours >= 15 &&
+                (name.toLowerCase().includes("kurir") ||
+                  position.toLowerCase().includes("kurir"))
+              ) {
+                return ((hours - 15) * 60 + minutes) * 500;
               }
               if (hours < 23 && hours >= 18) {
                 return ((hours - 18) * 60 + minutes) * 500;

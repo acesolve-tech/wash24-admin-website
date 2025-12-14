@@ -104,7 +104,7 @@ export default function UserLayout({
                     )}
 
                     {hasSubItems && isOpen && (
-                      <div className="mx-3 pb-2 flex flex-col">  
+                      <div className="mx-3 pb-2 flex flex-col">
                         {item.subItems
                           .filter((sub) => {
                             if (user.role === "Master") return true;
@@ -118,19 +118,28 @@ export default function UserLayout({
                                 return sub.title === "Jakarta Selatan";
                               }
                               if (user.email?.startsWith("jktpusat")) {
-                                return sub.title === "Jakarta Pusat"
+                                return sub.title === "Jakarta Pusat";
                               }
                             }
 
                             if (user.location === "Surabaya") {
-                              if (user.email?.startsWith("sbypusat")) {
-                                return sub.title === "Surabaya Pusat";
+                              // if (user.email?.startsWith("sbypusat")) {
+                              //   return sub.title === "Surabaya Pusat";
+                              // }
+                              // if (user.email?.startsWith("sbytimur")) {
+                              //   return sub.title === "Surabaya Timur";
+                              // }
+                              if (
+                                user.email?.startsWith("sbypusat") ||
+                                user.email?.startsWith("sbytimur")
+                              ) {
+                                return (
+                                  sub.title === "Surabaya Pusat" ||
+                                  sub.title === "Surabaya Timur"
+                                );
                               }
                               if (user.email?.startsWith("sbybarat")) {
                                 return sub.title === "Surabaya Barat";
-                              }
-                              if (user.email?.startsWith("sbytimur")) {
-                                return sub.title === "Surabaya Timur";
                               }
                               if (user.email?.startsWith("sbyselatan")) {
                                 return sub.title === "Surabaya Selatan";
