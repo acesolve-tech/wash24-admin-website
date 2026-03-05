@@ -5,6 +5,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  Timestamp,
   where,
   writeBatch,
 } from "firebase/firestore";
@@ -19,6 +20,7 @@ interface ListItem {
   type: string;
   position: number;
   finish_time: string;
+  estFinish: Timestamp;
   driver: string;
 }
 
@@ -48,7 +50,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
         const q = query(
           collection(db, `delivery-${props.regionCollectionName}`),
           where("type", "==", "Pick Up"),
-          where("status", "==", "On Progress")
+          where("status", "==", "On Progress"),
         );
 
         onSnapshot(q, (snapshot) => {
@@ -65,12 +67,23 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
               position: data.position,
               finish_time: data.finish_time,
               driver: data.driver,
+              estFinish: data.estFinish,
             });
           });
 
-          const orderedPickUpList = items
-            .slice()
-            .sort((a, b) => a.position - b.position);
+          const orderedPickUpList = items.slice().sort((a, b) => {
+            const aHas = !!a.estFinish;
+            const bHas = !!b.estFinish;
+
+            if (aHas && !bHas) return -1;
+            if (!aHas && bHas) return 1;
+
+            if (aHas && bHas) {
+              return a.estFinish.toMillis() - b.estFinish.toMillis();
+            }
+
+            return a.position - b.position;
+          });
           setListPickUp(orderedPickUpList);
         });
       } catch (error) {
@@ -83,7 +96,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
         const q = query(
           collection(db, `delivery-${props.regionCollectionName}`),
           where("type", "==", "Deliver"),
-          where("status", "==", "On Progress")
+          where("status", "==", "On Progress"),
         );
 
         onSnapshot(q, (snapshot) => {
@@ -100,12 +113,23 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
               position: data.position,
               finish_time: data.finish_time,
               driver: data.driver,
+              estFinish: data.estFinish,
             });
           });
 
-          const orderedDeliveryList = items
-            .slice()
-            .sort((a, b) => a.position - b.position);
+          const orderedDeliveryList = items.slice().sort((a, b) => {
+            const aHas = !!a.estFinish;
+            const bHas = !!b.estFinish;
+
+            if (aHas && !bHas) return -1;
+            if (!aHas && bHas) return 1;
+
+            if (aHas && bHas) {
+              return a.estFinish.toMillis() - b.estFinish.toMillis();
+            }
+
+            return a.position - b.position;
+          });
           setListDelivery(orderedDeliveryList);
         });
       } catch (error) {
@@ -119,7 +143,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
           collection(db, `delivery-${props.regionCollectionName}`),
           where("type", "==", "Pick Up"),
           where("status", "==", "Finish"),
-          where("finish_date", "==", formattedDate)
+          where("finish_date", "==", formattedDate),
         );
 
         onSnapshot(q, (snapshot) => {
@@ -136,6 +160,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
               position: data.position,
               finish_time: data.finish_time,
               driver: data.driver,
+              estFinish: data.estFinish,
             });
           });
           const orderedFinishPickUpList = items.slice().sort((a, b) => {
@@ -163,7 +188,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
           collection(db, `delivery-${props.regionCollectionName}`),
           where("type", "==", "Deliver"),
           where("status", "==", "Finish"),
-          where("finish_date", "==", formattedDate)
+          where("finish_date", "==", formattedDate),
         );
 
         onSnapshot(q, (snapshot) => {
@@ -180,6 +205,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
               position: data.position,
               finish_time: data.finish_time,
               driver: data.driver,
+              estFinish: data.estFinish,
             });
           });
 
@@ -208,7 +234,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
           collection(db, `delivery-${props.regionCollectionName}`),
           where("type", "==", "Pick Up"),
           where("status", "==", "Cancel"),
-          where("finish_date", "==", formattedDate)
+          where("finish_date", "==", formattedDate),
         );
 
         onSnapshot(q, (snapshot) => {
@@ -225,6 +251,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
               position: data.position,
               finish_time: data.finish_time,
               driver: data.driver,
+              estFinish: data.estFinish,
             });
           });
           const orderedCancelPickUpList = items
@@ -243,7 +270,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
           collection(db, `delivery-${props.regionCollectionName}`),
           where("type", "==", "Deliver"),
           where("status", "==", "Cancel"),
-          where("finish_date", "==", formattedDate)
+          where("finish_date", "==", formattedDate),
         );
 
         onSnapshot(q, (snapshot) => {
@@ -260,6 +287,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
               position: data.position,
               finish_time: data.finish_time,
               driver: data.driver,
+              estFinish: data.estFinish,
             });
           });
           const orderedCancelDeliveryList = items
@@ -272,7 +300,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
       }
     };
 
-    const fetchAllData = async () => { 
+    const fetchAllData = async () => {
       await fetchDataPickUp();
       await fetchDataDeliver();
       await fetchDataFinishPickUp();
@@ -287,7 +315,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
 
   const handleDragStartPickUp = (
     e: React.DragEvent<HTMLLIElement>,
-    index: number
+    index: number,
   ) => {
     e.dataTransfer.setData("index", index.toString());
   };
@@ -298,7 +326,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
 
   const handleDropPickUp = async (
     e: React.DragEvent<HTMLLIElement>,
-    newIndex: number
+    newIndex: number,
   ) => {
     const oldIndex = parseInt(e.dataTransfer.getData("index"), 10);
     const newList = [...listPickUp];
@@ -316,7 +344,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
         const docRef = doc(
           db,
           `delivery-${props.regionCollectionName}`,
-          item.id
+          item.id,
         );
         batch.update(docRef, { position: item.position });
       });
@@ -328,7 +356,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
 
   const handleDragStartDelivery = (
     e: React.DragEvent<HTMLLIElement>,
-    index: number
+    index: number,
   ) => {
     e.dataTransfer.setData("index", index.toString());
   };
@@ -339,7 +367,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
 
   const handleDropDelivery = async (
     e: React.DragEvent<HTMLLIElement>,
-    newIndex: number
+    newIndex: number,
   ) => {
     const oldIndex = parseInt(e.dataTransfer.getData("index"), 10);
     const newList = [...listDelivery];
@@ -357,7 +385,7 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
         const docRef = doc(
           db,
           `delivery-${props.regionCollectionName}`,
-          item.id
+          item.id,
         );
         batch.update(docRef, { position: item.position });
       });
@@ -365,6 +393,20 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
     } catch (error) {
       console.error("Error updating positions:", error);
     }
+  };
+
+  const formatShortDateTime = (value: any) => {
+    if (!value) return "-";
+
+    const date = value?.toDate ? value.toDate() : new Date(value);
+
+    return date.toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -386,7 +428,10 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
             >
               <div className="flex gap-x-3">
                 <div className="font-bold text-base sm:text-lg">
-                  {item.name} <span className="text-red-500">{item.note}</span>
+                  {item.name} <span className="text-red-500">{item.note}</span>{" "}
+                  <span className="text-blue-600">
+                    {formatShortDateTime(item.estFinish)}
+                  </span>
                 </div>
               </div>
             </li>
@@ -410,7 +455,10 @@ const DragNDropList: React.FC<UpdateDeliveryProps> = (props) => {
             >
               <div className="flex gap-x-3">
                 <div className="font-bold text-base sm:text-lg">
-                  {item.name} <span className="text-red-500">{item.note}</span>
+                  {item.name} <span className="text-red-500">{item.note}</span>{" "}
+                  <span className="text-blue-600">
+                    {formatShortDateTime(item.estFinish)}
+                  </span>
                 </div>
               </div>
             </li>

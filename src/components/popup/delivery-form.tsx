@@ -34,10 +34,13 @@ import {
   finishOrCancelDelivery,
   saveDelivery,
 } from "@/lib/delivery";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
 import { LOCATIONS } from "@/constants";
-// import { Icon } from "@iconify/react/dist/iconify.js";
-// import { ComboboxName } from "../ComboboxName";
 
 interface DeliverFormProps {
   setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>;
@@ -53,9 +56,10 @@ export default function DeliveryForm(props: DeliverFormProps) {
   const [note, setNote] = useState("");
   const [driver, setDriver] = useState("");
   const [error, setError] = useState("");
+  const [estFinish, setEstFinish] = useState("");
   const formattedPhone = phone.replace(/[^0-9]/g, "");
   const [staffList, setStaffList] = useState<{ uid: string; name: string }[]>(
-    []
+    [],
   );
 
   const handleAdd = async (e: React.FormEvent, deliveryType: string) => {
@@ -67,6 +71,7 @@ export default function DeliveryForm(props: DeliverFormProps) {
       type: deliveryType,
       status: "On Progress",
       position: -1,
+      estFinish: estFinish ? Timestamp.fromDate(new Date(estFinish)) : null,
     };
 
     await addDelivery(props.regionCollectionName || "", data);
@@ -85,6 +90,7 @@ export default function DeliveryForm(props: DeliverFormProps) {
         phone: phone,
         note: note,
         driver: driver ? driver : "",
+        estFinish: estFinish ? Timestamp.fromDate(new Date(estFinish)) : null,
       };
       await saveDelivery(props.regionCollectionName || "", deliveryId, data);
     } else {
@@ -96,7 +102,7 @@ export default function DeliveryForm(props: DeliverFormProps) {
         props.regionCollectionName || "",
         deliveryId,
         actionType,
-        driver
+        driver,
       );
 
       if (props.openEditForm?.details?.type == "Pick Up") {
@@ -106,7 +112,7 @@ export default function DeliveryForm(props: DeliverFormProps) {
           .padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
 
         const location = LOCATIONS.find(
-          (loc) => loc.collectionName === props.regionCollectionName
+          (loc) => loc.collectionName === props.regionCollectionName,
         );
 
         try {
@@ -127,6 +133,28 @@ export default function DeliveryForm(props: DeliverFormProps) {
     props.setOpenEditForm({ status: false, details: null });
   };
 
+  const formatDatetimeLocal = (value: any) => {
+    if (!value) return "";
+ 
+    if (value?.toDate) {
+      const d = value.toDate();
+      return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+    }
+ 
+    if (typeof value === "string" && value.length === 16) {
+      return value;
+    }
+ 
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "";
+
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+  };
+
   useEffect(() => {
     const loadStaff = async () => {
       const res = await fetchUsersByRole();
@@ -143,12 +171,16 @@ export default function DeliveryForm(props: DeliverFormProps) {
           setPhone(details.phone);
           setNote(details.note);
           setDriver(details.driver);
-          console.log(details.driver);
+          setEstFinish(formatDatetimeLocal(details.estFinish));
+          setDriver(details.driver);
+          console.log("estFinish raw:", details.estFinish);
+console.log("formatted:", formatDatetimeLocal(details.estFinish));
         }
       } catch (error) {
         console.error("Error fetching order data:", error);
       }
     };
+    
     fetchData();
     loadStaff();
   }, [props.openEditForm.details]);
@@ -218,7 +250,7 @@ export default function DeliveryForm(props: DeliverFormProps) {
                             value={staff.name}
                             onSelect={(currentValue) => {
                               setDriver(
-                                currentValue === driver ? "" : currentValue
+                                currentValue === driver ? "" : currentValue,
                               );
                               setOpen(false);
                             }}
@@ -228,7 +260,7 @@ export default function DeliveryForm(props: DeliverFormProps) {
                                 "mr-2 h-4 w-4",
                                 driver === staff.name
                                   ? "opacity-100"
-                                  : "opacity-0"
+                                  : "opacity-0",
                               )}
                             />
                             {staff.name}
@@ -271,6 +303,21 @@ export default function DeliveryForm(props: DeliverFormProps) {
               onChange={(e) => setNote(e.target.value)}
               id="note"
               type="note"
+              readOnly={
+                props.openEditForm?.details?.id
+                  ? !(props.currRole === "Master" || props.currRole === "Admin")
+                  : false
+              }
+            />
+          </div>
+          <div className="grid w-full items-center gap-1.5 mb-5">
+            <Label htmlFor="estFinish">Estimasi Selesai</Label>
+            <Input
+              className="w-full text-text"
+              value={estFinish}
+              onChange={(e) => setEstFinish(e.target.value)}
+              id="estFinish"
+              type="datetime-local"
               readOnly={
                 props.openEditForm?.details?.id
                   ? !(props.currRole === "Master" || props.currRole === "Admin")
