@@ -355,6 +355,13 @@ const getColumns = (
                 </span>
               </p>
               <p className="text-xs text-gray-500">
+                <span className="font-semibold">Lipat:</span>{" "}
+                <span className="">{productionStaff?.lipat}</span>
+                <span className="ml-1">
+                  {formatTimestamp(productionStaff?.lipat_timestamp)}
+                </span>
+              </p>
+              <p className="text-xs text-gray-500">
                 <span className="font-semibold">Packing:</span>{" "}
                 <span className="">{productionStaff?.packing}</span>
                 <span className="ml-1">
