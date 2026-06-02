@@ -59,6 +59,8 @@ export async function middleware(request: NextRequest) {
       } else { 
         locationPath = "/delivery/jkt4";
       }
+    } else if (userLocation === "Hotel Karpet") {
+      locationPath = "/delivery/hotel-n-karpet";
     }
 
     if (locationPath) {

@@ -146,6 +146,10 @@ export default function UserLayout({
                               }
                             }
 
+                            if (user.location === "Hotel Karpet") {
+                              return sub.title === "Hotel dan Karpet";
+                            }
+
                             return false;
                           })
                           .map((sub) => (

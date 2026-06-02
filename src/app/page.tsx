@@ -106,6 +106,7 @@ export default function Home() {
       setPassword("");
 
       const userLocation = result.data?.location?.toLowerCase() || "";
+      console.log("User Location:", userLocation);
       if (userLocation === "malang") {
         router.push("/delivery/mlg");
       } else if (userLocation === "jakarta") {
@@ -126,6 +127,8 @@ export default function Home() {
         } else {
           router.push("/delivery/sby");
         }
+      } else if (userLocation === "hotel karpet") {
+        router.push("/delivery/hotel-n-karpet");
       }
     } catch (error) {
       console.log(error);
