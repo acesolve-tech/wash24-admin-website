@@ -251,7 +251,7 @@ const getColumns = (
               return (
                 <div
                   key={index}
-                  className="cursor-pointer w-24 h-24 flex-shrink-0"
+                  className="cursor-pointer w-36 h-36 flex-shrink-0"
                   onClick={() =>
                     handleImageClick({
                       description,
@@ -263,7 +263,7 @@ const getColumns = (
                   <img
                     src={imageSrc}
                     alt="Production Detail"
-                    className="w-24 h-24 object-cover rounded-md"
+                    className="w-36 h-36 object-cover rounded-md"
                     loading="lazy"
                   />
                 </div>
@@ -276,9 +276,9 @@ const getColumns = (
               setOpenEditForm({ status: true, details: row.original }),
                 setCategoryToEdit("Production Detail");
             }}
-            className=" h-32 min-w-32 w-auto rounded-md text-gray-500 cursor-pointer  flex items-center"
+            className=" h-36 min-w-32 w-auto rounded-md text-gray-500 cursor-pointer  flex items-center"
           >
-            <div className="px-6 flex flex-col items-center justify-center h-32 w-auto border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
+            <div className="px-6 flex flex-col items-center justify-center h-36 w-auto border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
               <svg
                 fill="#6B7280"
                 height="30px"
@@ -316,9 +316,9 @@ const getColumns = (
               setOpenEditForm({ status: true, details: row.original }),
                 setCategoryToEdit("Production Staff");
             }}
-            className=" h-32 min-w-32 w-auto rounded-md text-gray-500 cursor-pointer  flex items-center"
+            className=" h-36 min-w-32 w-auto rounded-md text-gray-500 cursor-pointer  flex items-center"
           >
-            <div className="px-2.5 flex flex-col items-start justify-center h-32 min-w-28 w-auto border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
+            <div className="px-2.5 flex flex-col items-start justify-center h-36 min-w-28 w-auto border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
               <p className="text-xs text-gray-500">
                 <span className="font-semibold">Pick Up:</span>{" "}
                 <span className="">{productionStaff?.pickup}</span>

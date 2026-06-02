@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { Label } from "../ui/label";
-import { downloadProductionToExcel } from "@/lib/excel/production";
-// import { Button } from "./ui/button";
-// import { downloadProductionToExcel } from "@/lib/xlsx-production";
+import { downloadProductionMonthlyToExcel } from "@/lib/production";
 
 interface ProductionExportFormProps {
   setExportForm: (value: boolean) => void;
@@ -10,8 +8,15 @@ interface ProductionExportFormProps {
 }
 
 export default function ProductionExportForm(props: ProductionExportFormProps) {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const today = new Date();
+  const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const [yearMonth, setYearMonth] = useState(defaultMonth);
+
+  const handleExport = async () => {
+    if (!yearMonth) return;
+    await downloadProductionMonthlyToExcel(yearMonth, props.region);
+    props.setExportForm(false);
+  };
 
   return (
     <div
@@ -22,33 +27,20 @@ export default function ProductionExportForm(props: ProductionExportFormProps) {
         className="w-full sm:w-[400px] bg-white rounded-md p-7"
         onClick={(e) => e.stopPropagation()}
       >
-        <Label className="text-lg font-semibold mb-4">
-          Pilih Rentang Tanggal
-        </Label>
-        <form>
-          <div className="mb-4">
-            <label className="block text-sm font-medium">Tanggal Mulai</label>
+        <Label className="text-lg font-semibold mb-4">Pilih Bulan & Tahun</Label>
+        <form onSubmit={(e) => { e.preventDefault(); handleExport(); }}>
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-1">Bulan & Tahun</label>
             <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full border p-2 rounded-md mt-1"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium">Tanggal Akhir</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full border p-2 rounded-md mt-1"
+              type="month"
+              value={yearMonth}
+              onChange={(e) => setYearMonth(e.target.value)}
+              className="w-full border p-2 rounded-md"
             />
           </div>
           <button
+            type="submit"
             className="w-full bg-purple-700 hover:bg-purple-800 cursor-pointer text-white rounded-md py-1.5"
-            onClick={() =>
-              downloadProductionToExcel(startDate, endDate, props.region)
-            }
           >
             Export ke Excel
           </button>

@@ -58,12 +58,12 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     path: "/otp",
     role: ["Master"],
   },
-  {
-    title: "Tugas",
-    icon: <ListChecks className="size-7" />,
-    path: "/task",
-    role: ["Master"],
-  },
+  // {
+  //   title: "Tugas",
+  //   icon: <ListChecks className="size-7" />,
+  //   path: "/task",
+  //   role: ["Master"],
+  // },
   {
     title: "Delivery",
     icon: <Truck className="size-7" />,
@@ -85,12 +85,12 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
       { title: "Kas", path: "/cash-report/kas" },
     ],
   },
-  {
-    title: "Stok",
-    icon: <Warehouse className="size-7" />,
-    path: "#",
-    subItems: generateLocationSubItems("/stock"),
-  },
+  // {
+  //   title: "Stok",
+  //   icon: <Warehouse className="size-7" />,
+  //   path: "#",
+  //   subItems: generateLocationSubItems("/stock"),
+  // },
 ];
 
 export const ROUTE_PERMISSIONS = SIDEBAR_ITEMS.flatMap((item) => {
