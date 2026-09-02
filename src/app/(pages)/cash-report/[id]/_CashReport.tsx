@@ -12,6 +12,7 @@ import { Pen } from "lucide-react";
 import { fetchCashReport } from "@/lib/cash-report";
 import Loading from "@/components/Loading";
 import CashReportForm from "@/components/popup/cash-report-form";
+import CashReportExportForm from "@/components/popup/cash-report-export-form";
 
 const Page = () => {
   const { id } = useParams();
@@ -25,6 +26,7 @@ const Page = () => {
     status: false,
     details: null,
   });
+  const [exportForm, setExportForm] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -46,6 +48,7 @@ const Page = () => {
         columns={getColumns(setOpenEditForm)}
         data={data}
         setOpenEditForm={setOpenEditForm}
+        setExportForm={setExportForm}
         total={total}
       />
       {openEditForm.status && (
@@ -60,6 +63,12 @@ const Page = () => {
             collectionName={Array.isArray(id) ? id[0] : id ?? ""}
           />
         </div>
+      )}
+      {exportForm && (
+        <CashReportExportForm
+          region={Array.isArray(id) ? id[0] : id ?? ""}
+          setExportForm={setExportForm}
+        />
       )}
       {loading && <Loading />}
     </div>

@@ -1,16 +1,12 @@
 import { SidebarItem } from "@/types/sidebar";
 import {
-  Settings,
   FileText,
   Clock,
-  ClipboardMinus,
   User,
   KeyRound,
   Box,
   Truck,
   Banknote,
-  Warehouse,
-  ListChecks,
 } from "lucide-react";
 
 export const LOCATIONS = [

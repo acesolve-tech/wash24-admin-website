@@ -42,6 +42,7 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>;
+  setExportForm: Dispatch<SetStateAction<boolean>>;
   total: number;
 }
 
@@ -49,6 +50,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   setOpenEditForm,
+  setExportForm,
   total,
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -90,17 +92,25 @@ export function DataTable<TData, TValue>({
             </span>
           </Label>
         </div>
-        <button
-          className="cursor-pointer ml-auto bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-1.5 rounded-md"
-          onClick={() =>
-            setOpenEditForm({
-              status: true,
-              details: null,
-            })
-          }
-        >
-          + Tambah Tunai
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            className="cursor-pointer bg-purple-700 hover:bg-purple-800 text-white px-5 py-1.5 rounded-md"
+            onClick={() => setExportForm(true)}
+          >
+            + Export ke Excel
+          </button>
+          <button
+            className="cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-1.5 rounded-md"
+            onClick={() =>
+              setOpenEditForm({
+                status: true,
+                details: null,
+              })
+            }
+          >
+            + Tambah Tunai
+          </button>
+        </div>
       </div>
       <div className="rounded-md border w-full">
         <Table>

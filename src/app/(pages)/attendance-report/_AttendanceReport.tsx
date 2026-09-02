@@ -2,14 +2,22 @@
 import { Label } from "@/components/ui/label";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { DataTable } from "./data-table";
-import { Attendance } from "@/types/attendance";
+import { Attendance, AttendanceGeo } from "@/types/attendance";
 import { ColumnDef } from "@tanstack/react-table";
 import { Timestamp } from "firebase/firestore";
-import { Pen } from "lucide-react";
+import { Camera, MapPin, Pen } from "lucide-react";
 import { fetchAttendance } from "@/lib/attendance";
 import { userStore } from "@/store/user";
 import AttendanceReportForm from "@/components/popup/attendance-report-form";
+import AttendanceDetailPreview from "@/components/popup/attendance-detail-preview";
 import Loading from "@/components/Loading";
+
+type DetailPreview = {
+  title: string;
+  staffName: string;
+  photoUrl?: string;
+  location?: AttendanceGeo;
+} | null;
 
 const Page = () => {
   const [loading, setLoading] = useState(false);
@@ -19,6 +27,7 @@ const Page = () => {
     status: false,
     details: null,
   });
+  const [detailPreview, setDetailPreview] = useState<DetailPreview>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -36,7 +45,7 @@ const Page = () => {
       <Label className="text-3xl font-bold w-fit">Laporan Absensi</Label>
       <div className="w-full flex justify-center items-start min-h-[80dvh]">
         <DataTable
-          columns={getColumns(setOpenEditForm)}
+          columns={getColumns(setOpenEditForm, setDetailPreview)}
           data={data}
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
@@ -56,14 +65,66 @@ const Page = () => {
         </div>
       )}
       {loading && <Loading />}
+      {detailPreview && (
+        <AttendanceDetailPreview
+          title={detailPreview.title}
+          staffName={detailPreview.staffName}
+          photoUrl={detailPreview.photoUrl}
+          location={detailPreview.location}
+          onClose={() => setDetailPreview(null)}
+        />
+      )}
     </div>
   );
 };
 
 export default Page;
 
+const ClockIcons = ({
+  photoUrl,
+  location,
+  title,
+  staffName,
+  setDetailPreview,
+}: {
+  photoUrl?: string;
+  location?: AttendanceGeo;
+  title: string;
+  staffName: string;
+  setDetailPreview: Dispatch<SetStateAction<DetailPreview>>;
+}) => {
+  if (!photoUrl && !location) return null;
+  const open = () =>
+    setDetailPreview({ title, staffName, photoUrl, location });
+  return (
+    <div className="flex gap-1">
+      {photoUrl && (
+        <button
+          type="button"
+          onClick={open}
+          className="text-gray-500 hover:text-gray-800 cursor-pointer"
+          title="Lihat foto"
+        >
+          <Camera className="w-3.5 h-3.5" />
+        </button>
+      )}
+      {location && (
+        <button
+          type="button"
+          onClick={open}
+          className="text-gray-500 hover:text-gray-800 cursor-pointer"
+          title="Lihat lokasi"
+        >
+          <MapPin className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
+};
+
 const getColumns = (
-  setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>
+  setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>,
+  setDetailPreview: Dispatch<SetStateAction<DetailPreview>>
 ): ColumnDef<Attendance>[] => [
   {
     header: "Name",
@@ -78,6 +139,7 @@ const getColumns = (
     accessorKey: "clock_in",
     cell: ({ row }) => {
       const clock_in = row.getValue("clock_in");
+      const attendance = row.original;
 
       if (clock_in && clock_in instanceof Timestamp) {
         const { seconds, nanoseconds } = clock_in;
@@ -93,7 +155,18 @@ const getColumns = (
         const formatter = new Intl.DateTimeFormat("en-US", options);
         const formatted = formatter.format(formattedDate);
         const adjustedFormatted = formatted.replace(/^24/, "00");
-        return <div className="">{adjustedFormatted}</div>;
+        return (
+          <div className="flex items-center gap-2">
+            <span>{adjustedFormatted}</span>
+            <ClockIcons
+              photoUrl={attendance.clock_in_photo}
+              location={attendance.clock_in_location}
+              title="Datang Kerja"
+              staffName={attendance.name}
+              setDetailPreview={setDetailPreview}
+            />
+          </div>
+        );
       } else {
         return <div className=""> - </div>;
       }
@@ -104,6 +177,7 @@ const getColumns = (
     accessorKey: "clock_out",
     cell: ({ row }) => {
       const clock_out = row.getValue("clock_out");
+      const attendance = row.original;
 
       if (clock_out && clock_out instanceof Timestamp) {
         const { seconds, nanoseconds } = clock_out;
@@ -133,7 +207,18 @@ const getColumns = (
           dateParts[2] +
           ")";
 
-        return <div className="">{adjustedFormatted}</div>;
+        return (
+          <div className="flex items-center gap-2">
+            <span>{adjustedFormatted}</span>
+            <ClockIcons
+              photoUrl={attendance.clock_out_photo}
+              location={attendance.clock_out_location}
+              title="Pulang Kerja"
+              staffName={attendance.name}
+              setDetailPreview={setDetailPreview}
+            />
+          </div>
+        );
       } else {
         return <div className=""> - </div>;
       }

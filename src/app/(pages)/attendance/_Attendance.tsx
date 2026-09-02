@@ -25,6 +25,7 @@ import successAnimation from "@/../public/assets/animation/successAnimation.json
 import failedAnimation from "@/../public/assets/animation/failedAnimation.json";
 import Clock from "@/components/Clock";
 import { userStore } from "@/store/user";
+import AttendanceCapture from "@/components/popup/attendance-capture";
 
 const Page = () => {
   const user = userStore((state: any) => state.user);
@@ -41,6 +42,7 @@ const Page = () => {
     ongoing: false,
     status: false,
   });
+  const [captureOpen, setCaptureOpen] = useState(false);
 
   useEffect(() => {
     const loadStaff = async () => {
@@ -56,21 +58,37 @@ const Page = () => {
     fetchUser();
   }, []);
 
-  const handleSubmit = async () => {
-    if (!userId || !attendanceType) return;
-
-    const result = await insertOrUpdateAttendance(userId, attendanceType);
-    if (result?.success) {
-      setShowStatus({ ongoing: true, status: true });
-    } else {
-      setShowStatus({ ongoing: false, status: false });
-    }
-
+  const finalizeAttendance = (success: boolean) => {
+    setShowStatus({ ongoing: true, status: success });
     setUserId("");
     setAttendanceType("");
     setTimeout(() => {
       setShowStatus({ ongoing: false, status: false });
     }, 3000);
+  };
+
+  const handleSubmit = async () => {
+    if (!userId || !attendanceType) return;
+
+    if (attendanceType === "clock_in" || attendanceType === "clock_out") {
+      setCaptureOpen(true);
+      return;
+    }
+
+    const result = await insertOrUpdateAttendance(userId, attendanceType);
+    finalizeAttendance(!!result?.success);
+  };
+
+  const handleCaptureConfirm = async (payload: {
+    photo: string;
+    location: { lat: number; lng: number; accuracy: number | null };
+  }) => {
+    const result = await insertOrUpdateAttendance(userId, attendanceType, {
+      photo: payload.photo,
+      location: payload.location,
+    });
+    setCaptureOpen(false);
+    finalizeAttendance(!!result?.success);
   };
 
   const selectedStaff = staffList.find((staff) => staff.uid === userId);
@@ -304,6 +322,16 @@ const Page = () => {
           )}
         </div>
       </div>
+      {captureOpen &&
+        (attendanceType === "clock_in" || attendanceType === "clock_out") &&
+        selectedStaff && (
+          <AttendanceCapture
+            staffName={selectedStaff.name}
+            attendanceType={attendanceType as "clock_in" | "clock_out"}
+            onCancel={() => setCaptureOpen(false)}
+            onConfirm={handleCaptureConfirm}
+          />
+        )}
     </div>
   );
 };

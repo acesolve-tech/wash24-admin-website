@@ -1,4 +1,5 @@
-import { db } from "@/config/firebase";
+import { db, storage } from "@/config/firebase";
+import { AttendanceGeo } from "@/types/attendance";
 import { User } from "@/types/user";
 import {
   collection,
@@ -12,6 +13,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+import { getDownloadURL, ref, uploadString } from "firebase/storage";
 
 const getCurrentDateString = () => {
   const currentDate = new Date();
@@ -43,18 +45,36 @@ const checkDocumentExistence = async (name: string, date: string) => {
   return !querySnapshot.empty;
 };
 
-const updateOrAddDocument = async (name: string, selectedOption: string) => {
+const uploadAttendancePhoto = async (
+  name: string,
+  dateString: string,
+  attendanceType: string,
+  photoDataUrl: string
+): Promise<string> => {
+  const safeName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const path = `attendance_photos/${safeName}-${dateString}-${attendanceType}-${Date.now()}.jpg`;
+  const storageRef = ref(storage, path);
+  await uploadString(storageRef, photoDataUrl, "data_url");
+  return await getDownloadURL(storageRef);
+};
+
+const updateOrAddDocument = async (
+  name: string,
+  selectedOption: string,
+  extras: Record<string, any> = {}
+) => {
   const currentDate = getCurrentDateString();
   let documentExists = await checkDocumentExistence(name, currentDate);
 
-  const data = {
+  const data: Record<string, any> = {
     name: name,
     [selectedOption]: serverTimestamp(),
+    ...extras,
   };
 
   let attendanceDocRef = doc(db, "attendance", `${name}-${currentDate}`);
 
-  if (selectedOption !== "clock_in") { 
+  if (selectedOption !== "clock_in") {
     if (!documentExists) {
       const yesterdayDate = getPreviousDateString();
       documentExists = await checkDocumentExistence(name, yesterdayDate);
@@ -72,7 +92,8 @@ const updateOrAddDocument = async (name: string, selectedOption: string) => {
 
 export const insertOrUpdateAttendance = async (
   userId: string,
-  attendanceType: string
+  attendanceType: string,
+  options?: { photo?: string; location?: AttendanceGeo | null }
 ) => {
   try {
     const userDocRef = doc(db, "users", userId);
@@ -97,7 +118,41 @@ export const insertOrUpdateAttendance = async (
       };
     }
 
-    await updateOrAddDocument(name, attendanceType);
+    const isClockEvent =
+      attendanceType === "clock_in" || attendanceType === "clock_out";
+
+    if (isClockEvent) {
+      if (!options?.photo) {
+        return {
+          success: false,
+          data: null,
+          message: "Foto Wajib Diambil",
+        };
+      }
+      if (!options?.location) {
+        return {
+          success: false,
+          data: null,
+          message: "Lokasi GPS Wajib Diaktifkan",
+        };
+      }
+    }
+
+    const extras: Record<string, any> = {};
+    if (isClockEvent && options?.photo) {
+      const photoUrl = await uploadAttendancePhoto(
+        name,
+        getCurrentDateString(),
+        attendanceType,
+        options.photo
+      );
+      extras[`${attendanceType}_photo`] = photoUrl;
+    }
+    if (isClockEvent && options?.location) {
+      extras[`${attendanceType}_location`] = options.location;
+    }
+
+    await updateOrAddDocument(name, attendanceType, extras);
     return {
       success: true,
       data: null,
