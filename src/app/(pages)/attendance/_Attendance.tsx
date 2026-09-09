@@ -46,7 +46,7 @@ const Page = () => {
 
   useEffect(() => {
     const loadStaff = async () => {
-      const res = await fetchUsersByRole("Staff", user.location);
+      const res = await fetchUsersByRole("Staff");
       if (res.success && res.data) {
         setStaffList(res.data);
       }
