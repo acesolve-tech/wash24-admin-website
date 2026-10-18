@@ -1,7 +1,6 @@
 "use client";
 
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -16,6 +15,13 @@ import { ChevronDown, ChevronUp, CornerDownRight, LogOut } from "lucide-react";
 import { userStore } from "@/store/user";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth/logout";
+import { canAccessPath } from "@/config/access";
+import { auth } from "@/config/firebase";
+import { signOut } from "firebase/auth";
+import { SidebarItem, SidebarItemWithSub } from "@/types/sidebar";
+
+const hasSubItems = (item: SidebarItem): item is SidebarItemWithSub =>
+  "subItems" in item && Array.isArray(item.subItems);
 
 export default function UserLayout({
   children,
@@ -25,21 +31,39 @@ export default function UserLayout({
   const user = userStore((state: any) => state.user);
   const fetchUser = userStore((state: any) => state.fetchUser);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const [loggingOut, setLoggingOut] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     fetchUser();
   }, []);
 
+  const menuItems = useMemo(
+    () =>
+      SIDEBAR_ITEMS.flatMap((item): SidebarItem[] => {
+        if (hasSubItems(item)) {
+          const subItems = item.subItems.filter((sub) =>
+            canAccessPath(sub.path, user)
+          );
+          return subItems.length > 0 ? [{ ...item, subItems }] : [];
+        }
+        return canAccessPath(item.path, user) ? [item] : [];
+      }),
+    [user]
+  );
+
   const toggleMenu = (title: string) => {
     setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
   };
 
   const handleLogout = async () => {
-    const result = await logout();
-
-    console.log("test");
-    router.push("/");
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await Promise.allSettled([logout(), signOut(auth)]);
+    } finally {
+      router.replace("/");
+    }
   };
 
   return (
@@ -62,119 +86,69 @@ export default function UserLayout({
             </SheetHeader>
 
             <nav className="flex flex-col justify-start px-4 h-full pb-5 overflow-y-auto">
-              {SIDEBAR_ITEMS.filter((item) => {
-                if (!item.role) return true;
-                return item.role.includes(user.role);
-              }).map((item) => {
-                const hasSubItems = "subItems" in item;
+              {menuItems.map((item) => {
                 const isOpen = openMenus[item.title];
+
+                if (!hasSubItems(item)) {
+                  return (
+                    <Link
+                      key={item.title}
+                      href={item.path}
+                      className="font-medium text-gray-800 hover:text-black p-3 px-1 flex justify-between items-center text-lg border-b hover:border-gray-400"
+                    >
+                      <div className="flex justify-center items-center gap-3">
+                        {item.icon}
+                        {item.title}
+                      </div>
+                    </Link>
+                  );
+                }
 
                 return (
                   <div key={item.title}>
-                    {hasSubItems ? (
-                      <div
-                        onClick={() => toggleMenu(item.title)}
-                        className="w-full text-left font-medium text-gray-800 hover:text-black py-3 px-1 flex justify-between items-center text-lg border-b hover:border-gray-400 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          {item.icon}
-                          {item.title}
-                        </div>
-                        {hasSubItems &&
-                          (isOpen ? (
-                            <ChevronUp className="w-5" />
-                          ) : (
-                            <ChevronDown className="w-5" />
-                          ))}
+                    <button
+                      type="button"
+                      onClick={() => toggleMenu(item.title)}
+                      aria-expanded={!!isOpen}
+                      className="w-full text-left font-medium text-gray-800 hover:text-black py-3 px-1 flex justify-between items-center text-lg border-b hover:border-gray-400 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        {item.icon}
+                        {item.title}
                       </div>
-                    ) : (
-                      <Link
-                        href={item.path}
-                        className={`font-medium text-gray-800 hover:text-black p-3 px-1 flex justify-between items-center text-lg border-b hover:border-gray-400`}
-                      >
-                        <div className="flex justify-center items-center gap-3">
-                          {item.icon}
-                          {item.title}
-                        </div>
-                        <div className="">
-                          {"subItems" in item && (
-                            <ChevronDown className="w-5 aspect-square" />
-                          )}
-                        </div>
-                      </Link>
-                    )}
+                      {isOpen ? (
+                        <ChevronUp className="w-5" />
+                      ) : (
+                        <ChevronDown className="w-5" />
+                      )}
+                    </button>
 
-                    {hasSubItems && isOpen && (
+                    {isOpen && (
                       <div className="mx-3 pb-2 flex flex-col">
-                        {item.subItems
-                          .filter((sub) => {
-                            if (user.role === "Master") return true;
-
-                            if (user.location === "Malang") {
-                              return sub.title === "Malang";
-                            }
-
-                            if (user.location === "Jakarta") {
-                              if (user.email?.startsWith("jktselatan")) {
-                                return sub.title === "Jakarta Selatan";
-                              }
-                              if (user.email?.startsWith("jktpusat")) {
-                                return sub.title === "Jakarta Pusat";
-                              }
-                            }
-
-                            if (user.location === "Surabaya") {
-                              // if (user.email?.startsWith("sbypusat")) {
-                              //   return sub.title === "Surabaya Pusat";
-                              // }
-                              // if (user.email?.startsWith("sbytimur")) {
-                              //   return sub.title === "Surabaya Timur";
-                              // }
-                              if (
-                                user.email?.startsWith("sbypusat") ||
-                                user.email?.startsWith("sbytimur")
-                              ) {
-                                return (
-                                  sub.title === "Surabaya Pusat" ||
-                                  sub.title === "Surabaya Timur"
-                                );
-                              }
-                              if (user.email?.startsWith("sbybarat")) {
-                                return sub.title === "Surabaya Barat";
-                              }
-                              if (user.email?.startsWith("sbyselatan")) {
-                                return sub.title === "Surabaya Selatan";
-                              }
-                            }
-
-                            if (user.location === "Hotel Karpet") {
-                              return sub.title === "Hotel dan Karpet";
-                            }
-
-                            return false;
-                          })
-                          .map((sub) => (
-                            <Link
-                              key={sub.title}
-                              href={sub.path}
-                              className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-3 cursor-pointer py-3 border-b"
-                            >
-                              <CornerDownRight className="size-5 mb-0.5 opacity-50" />
-                              <span className="text-base">{sub.title}</span>
-                            </Link>
-                          ))}
+                        {item.subItems.map((sub) => (
+                          <Link
+                            key={sub.title}
+                            href={sub.path}
+                            className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-3 cursor-pointer py-3 border-b"
+                          >
+                            <CornerDownRight className="size-5 mb-0.5 opacity-50" />
+                            <span className="text-base">{sub.title}</span>
+                          </Link>
+                        ))}
                       </div>
                     )}
                   </div>
                 );
               })}
               <button
+                type="button"
                 onClick={handleLogout}
-                className={`mt-auto font-medium text-gray-800 hover:text-black p-3 px-1 flex justify-between items-center text-lg border-b cursor-pointer hover:border-gray-400`}
+                disabled={loggingOut}
+                className="mt-auto font-medium text-gray-800 hover:text-black p-3 px-1 flex justify-between items-center text-lg border-b cursor-pointer hover:border-gray-400 disabled:opacity-50"
               >
                 <div className="flex justify-center items-center gap-2">
                   <LogOut className="w-7 aspect-square" />
-                  Logout
+                  {loggingOut ? "Keluar..." : "Logout"}
                 </div>
               </button>
             </nav>

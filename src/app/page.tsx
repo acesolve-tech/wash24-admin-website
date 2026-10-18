@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { getLatestOtp, sendOtp } from "@/lib/auth/otp";
 import { login } from "@/lib/auth/login";
 import { useRouter } from "next/navigation";
+import { getHomePath } from "@/config/access";
 
 import {
   Card,
@@ -93,8 +94,9 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const result = await login(email.trim(), password.trim());
-      if (!result.success) {
+      const trimmedEmail = email.trim();
+      const result = await login(trimmedEmail, password.trim());
+      if (!result.success || !result.data) {
         setPassword("");
         console.log(result.message);
         setError("Email dan Password tidak sesuai");
@@ -105,31 +107,14 @@ export default function Home() {
       setEmail("");
       setPassword("");
 
-      const userLocation = result.data?.location?.toLowerCase() || "";
-      console.log("User Location:", userLocation);
-      if (userLocation === "malang") {
-        router.push("/delivery/mlg");
-      } else if (userLocation === "jakarta") {
-        if (email.startsWith("jktselatan")) {
-          router.push("/delivery/jkt3");
-        } else if (email.startsWith("jktpusat")) {
-          router.push("/delivery/jkt4");
-        }
-      } else if (userLocation === "surabaya") {
-        if (email.startsWith("sbypusat")) {
-          router.push("/delivery/sby");
-        } else if (email.startsWith("sbybarat")) {
-          router.push("/delivery/sby2");
-        } else if (email.startsWith("sbytimur")) {
-          router.push("/delivery/sby3");
-        } else if (email.startsWith("sbyselatan")) {
-          router.push("/delivery/sby4");
-        } else {
-          router.push("/delivery/sby");
-        }
-      } else if (userLocation === "hotel karpet") {
-        router.push("/delivery/hotel-n-karpet");
-      }
+      router.replace(
+        getHomePath({
+          email: trimmedEmail,
+          role: result.data.role,
+          location: result.data.location,
+        })
+      );
+      return;
     } catch (error) {
       console.log(error);
       setError("Email dan Password tidak sesuai");
@@ -195,11 +180,10 @@ export default function Home() {
                     <Label
                       onClick={handleSendOtp}
                       htmlFor="send"
-                      className={`text-blue-800 text-xs sm:text-sm sm:pr-1 cursor-pointer ${
-                        cooldown > 0
+                      className={`text-blue-800 text-xs sm:text-sm sm:pr-1 cursor-pointer ${cooldown > 0
                           ? "cursor-not-allowed opacity-50"
                           : "hover:underline"
-                      }`}
+                        }`}
                     >
                       {cooldown > 0 ? `Tunggu ${cooldown}s` : "Kirim Kode"}
                     </Label>

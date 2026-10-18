@@ -1,87 +1,33 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { ROUTE_PERMISSIONS } from "@/constants";
+import { canAccessPath, getHomePath, UNAUTHORIZED_PATH } from "@/config/access";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+
+const redirectTo = (request: NextRequest, path: string) =>
+  NextResponse.redirect(new URL(path, request.url));
 
 export async function middleware(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  const session = await verifySessionToken(token);
 
-  let userRole = "";
-  let userLocation = "";
-  let userEmail = "";
-  let isAuthenticated = false;
-
-  if (token) {
-    try {
-      const decoded = jwt.decode(token) as JwtPayload | null;
-      if (decoded && decoded.role) {
-        userRole = decoded.role;
-        userEmail = decoded.email;
-        userLocation = decoded.location.toLowerCase();
-        isAuthenticated = true;
-      } else {
-        return NextResponse.redirect(new URL("/", request.url));
-      }
-    } catch (err) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-  } else {
-    if (pathname === "/") {
-      return NextResponse.next();
-    }
-
-    return NextResponse.redirect(new URL("/", request.url));
+  if (!session) {
+    const response =
+      pathname === "/" ? NextResponse.next() : redirectTo(request, "/");
+    if (token) response.cookies.delete(SESSION_COOKIE);
+    return response;
   }
 
-  if (!isAuthenticated) {
-    return NextResponse.redirect(new URL("/", request.url));
-  } else if (isAuthenticated && pathname === "/") {
-    let locationPath = "";
-
-    if (userLocation === "malang") {
-      locationPath = "/delivery/mlg";
-    } else if (userLocation === "surabaya") {
-      if (userEmail?.startsWith("sbypusat")) {
-        locationPath = "/delivery/sby";
-      } else if (userEmail?.startsWith("sbybarat")) {
-        locationPath = "/delivery/sby2";
-      } else if (userEmail?.startsWith("sbytimur")) {
-        locationPath = "/delivery/sby3";
-      } else if (userEmail?.startsWith("sbyselatan")) {
-        locationPath = "/delivery/sby4";
-      } else {
-        locationPath = "/delivery/sby";
-      }
-    } else if (userLocation === "jakarta") {
-      if (userEmail?.startsWith("jktselatan")) {
-        locationPath = "/delivery/jkt3";
-      } else { 
-        locationPath = "/delivery/jkt4";
-      }
-    } else if (userLocation === "Hotel Karpet") {
-      locationPath = "/delivery/hotel-n-karpet";
-    }
-
-    if (locationPath) {
-      return NextResponse.redirect(new URL(locationPath, request.url));
-    }
-
-    return NextResponse.redirect(new URL("/", request.url));
+  if (pathname === "/") {
+    return redirectTo(request, getHomePath(session));
   }
 
-  const matched = ROUTE_PERMISSIONS.find(({ path }) => path === pathname);
-
-  if (!matched) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  if (!matched.role || matched.role.length === 0) {
+  if (pathname === UNAUTHORIZED_PATH) {
     return NextResponse.next();
   }
 
-  if (!matched.role.includes(userRole)) {
-    return NextResponse.redirect(new URL("/unauthorized", request.url));
+  if (!canAccessPath(pathname, session)) {
+    return redirectTo(request, UNAUTHORIZED_PATH);
   }
 
   return NextResponse.next();
@@ -90,12 +36,14 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/unauthorized",
     "/attendance",
     "/attendance-report",
     "/staff",
     "/otp",
     "/task",
     "/delivery/:path*",
+    "/delivery-history/:path*",
     "/production/:path*",
     "/cash-report/:path*",
     "/stock/:path*",

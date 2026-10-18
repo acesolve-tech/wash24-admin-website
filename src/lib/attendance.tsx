@@ -1,9 +1,11 @@
 import { db, storage } from "@/config/firebase";
-import { AttendanceGeo } from "@/types/attendance";
+import { ATTENDANCE_LABELS } from "@/constants/attendance";
+import { AttendanceGeo, AttendanceType } from "@/types/attendance";
 import { User } from "@/types/user";
 import {
   collection,
   doc,
+  DocumentData,
   getDoc,
   getDocs,
   query,
@@ -15,40 +17,127 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 
-const getCurrentDateString = () => {
-  const currentDate = new Date();
-  const year = currentDate.getFullYear();
-  const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-  const day = String(currentDate.getDate()).padStart(2, "0");
-
-  const formattedDate = `${year}-${month}-${day}`;
-  return formattedDate;
+type AttendanceResult = {
+  success: boolean;
+  data: null;
+  message: string;
 };
 
-const getPreviousDateString = () => {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
+type AttendanceRecord = DocumentData | null;
+
+export type AttendanceRuleResult =
+  | { ok: true; target: "today" | "yesterday" }
+  | { ok: false; message: string };
+
+const GENERIC_ERROR = "Terjadi kesalahan. Silakan coba lagi.";
+
+const formatDateString = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
-const checkDocumentExistence = async (name: string, date: string) => {
-  const q = query(
-    collection(db, "attendance"),
-    where("name", "==", name),
-    where("date", "==", date)
-  );
+const getCurrentDateString = () => formatDateString(new Date());
 
-  const querySnapshot = await getDocs(q);
-  return !querySnapshot.empty;
+const getPreviousDateString = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return formatDateString(date);
+};
+
+const getAttendanceDocId = (name: string, date: string) => `${name}-${date}`;
+
+const failed = (message: string): AttendanceResult => ({
+  success: false,
+  data: null,
+  message,
+});
+
+export function resolveAttendanceAction(
+  type: AttendanceType,
+  today: AttendanceRecord,
+  yesterday: AttendanceRecord
+): AttendanceRuleResult {
+  if (type === "clock_in") {
+    if (today?.clock_in) {
+      return { ok: false, message: "Sudah absen Datang Kerja hari ini." };
+    }
+    return { ok: true, target: "today" };
+  }
+
+  let target: "today" | "yesterday";
+  let shift: DocumentData;
+
+  if (today?.clock_in) {
+    target = "today";
+    shift = today;
+  } else if (yesterday?.clock_in && !yesterday?.clock_out) {
+    target = "yesterday";
+    shift = yesterday;
+  } else {
+    return { ok: false, message: "Belum absen Datang Kerja." };
+  }
+
+  if (shift.clock_out) {
+    return { ok: false, message: "Sudah absen Pulang Kerja untuk shift ini." };
+  }
+  if (shift[type]) {
+    return {
+      ok: false,
+      message: `Sudah absen ${ATTENDANCE_LABELS[type]} untuk shift ini.`,
+    };
+  }
+  if (type === "rest_end" && !shift.rest_start) {
+    return { ok: false, message: "Belum absen Mulai Istirahat." };
+  }
+
+  return { ok: true, target };
+}
+
+const getStaffName = async (userId: string): Promise<string | null> => {
+  const userSnap = await getDoc(doc(db, "users", userId));
+  if (!userSnap.exists()) return null;
+  const name = userSnap.data().name;
+  return typeof name === "string" && name.trim() ? name : null;
+};
+
+const validateAttendance = async (
+  userId: string,
+  type: AttendanceType
+): Promise<
+  { ok: true; name: string; docId: string } | { ok: false; message: string }
+> => {
+  const name = await getStaffName(userId);
+  if (!name) {
+    return { ok: false, message: "Data karyawan tidak ditemukan." };
+  }
+
+  const todayId = getAttendanceDocId(name, getCurrentDateString());
+  const yesterdayId = getAttendanceDocId(name, getPreviousDateString());
+  const [todaySnap, yesterdaySnap] = await Promise.all([
+    getDoc(doc(db, "attendance", todayId)),
+    getDoc(doc(db, "attendance", yesterdayId)),
+  ]);
+
+  const rule = resolveAttendanceAction(
+    type,
+    todaySnap.exists() ? todaySnap.data() : null,
+    yesterdaySnap.exists() ? yesterdaySnap.data() : null
+  );
+  if (!rule.ok) return rule;
+
+  return {
+    ok: true,
+    name,
+    docId: rule.target === "today" ? todayId : yesterdayId,
+  };
 };
 
 const uploadAttendancePhoto = async (
   name: string,
   dateString: string,
-  attendanceType: string,
+  attendanceType: AttendanceType,
   photoDataUrl: string
 ): Promise<string> => {
   const safeName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -58,133 +147,85 @@ const uploadAttendancePhoto = async (
   return await getDownloadURL(storageRef);
 };
 
-const updateOrAddDocument = async (
-  name: string,
-  selectedOption: string,
-  extras: Record<string, any> = {}
-) => {
-  const currentDate = getCurrentDateString();
-  let documentExists = await checkDocumentExistence(name, currentDate);
-
-  const data: Record<string, any> = {
-    name: name,
-    [selectedOption]: serverTimestamp(),
-    ...extras,
-  };
-
-  let attendanceDocRef = doc(db, "attendance", `${name}-${currentDate}`);
-
-  if (selectedOption !== "clock_in") {
-    if (!documentExists) {
-      const yesterdayDate = getPreviousDateString();
-      documentExists = await checkDocumentExistence(name, yesterdayDate);
-      attendanceDocRef = doc(db, "attendance", `${name}-${yesterdayDate}`);
-    }
-  }
-
-  if (documentExists) {
-    setDoc(attendanceDocRef, data, { merge: true });
-  } else if (selectedOption === "clock_in") {
-    data.date = currentDate;
-    setDoc(attendanceDocRef, data);
+export const checkAttendance = async (
+  userId: string,
+  type: AttendanceType
+): Promise<AttendanceResult> => {
+  try {
+    const result = await validateAttendance(userId, type);
+    if (!result.ok) return failed(result.message);
+    return { success: true, data: null, message: "" };
+  } catch (error) {
+    console.error("checkAttendance:", error);
+    return failed(GENERIC_ERROR);
   }
 };
 
 export const insertOrUpdateAttendance = async (
   userId: string,
-  attendanceType: string,
-  options?: { photo?: string; location?: AttendanceGeo | null }
-) => {
+  type: AttendanceType,
+  options: { photo: string; location: AttendanceGeo | null }
+): Promise<AttendanceResult> => {
   try {
-    const userDocRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userDocRef);
+    if (!options?.photo) return failed("Foto wajib diambil.");
+    if (!options?.location) return failed("Lokasi GPS wajib diaktifkan.");
 
-    if (!userSnap.exists()) {
-      return {
-        success: false,
-        data: null,
-        message: "Karyawan Tidak Ditemukan",
-      };
+    const result = await validateAttendance(userId, type);
+    if (!result.ok) return failed(result.message);
+
+    const currentDate = getCurrentDateString();
+    const photoUrl = await uploadAttendancePhoto(
+      result.name,
+      currentDate,
+      type,
+      options.photo
+    );
+
+    const data: Record<string, unknown> = {
+      name: result.name,
+      [type]: serverTimestamp(),
+      [`${type}_photo`]: photoUrl,
+      [`${type}_location`]: options.location,
+    };
+    if (type === "clock_in") {
+      data.date = currentDate;
     }
 
-    const userData = userSnap.data();
-    const name = userData.name;
+    await setDoc(doc(db, "attendance", result.docId), data, { merge: true });
 
-    if (!name) {
-      return {
-        success: false,
-        data: null,
-        message: "Nama Karyawan Tidak Ada",
-      };
-    }
-
-    const isClockEvent =
-      attendanceType === "clock_in" || attendanceType === "clock_out";
-
-    if (isClockEvent) {
-      if (!options?.photo) {
-        return {
-          success: false,
-          data: null,
-          message: "Foto Wajib Diambil",
-        };
-      }
-      if (!options?.location) {
-        return {
-          success: false,
-          data: null,
-          message: "Lokasi GPS Wajib Diaktifkan",
-        };
-      }
-    }
-
-    const extras: Record<string, any> = {};
-    if (isClockEvent && options?.photo) {
-      const photoUrl = await uploadAttendancePhoto(
-        name,
-        getCurrentDateString(),
-        attendanceType,
-        options.photo
-      );
-      extras[`${attendanceType}_photo`] = photoUrl;
-    }
-    if (isClockEvent && options?.location) {
-      extras[`${attendanceType}_location`] = options.location;
-    }
-
-    await updateOrAddDocument(name, attendanceType, extras);
     return {
       success: true,
       data: null,
-      message: "Absensi Berhasil",
+      message: `Absen ${ATTENDANCE_LABELS[type]} berhasil.`,
     };
   } catch (error) {
-    return {
-      success: false,
-      data: null,
-      message: "Terjadi Kesalahan. Silakan Coba Lagi.",
-    };
+    console.error("insertOrUpdateAttendance:", error);
+    return failed(GENERIC_ERROR);
   }
 };
 
-export const fetchAttendance = async (selectedDate: Date) => {
+export const fetchAttendance = async (
+  selectedDate: Date,
+  cities?: string[] | null
+) => {
   try {
     const userQuerySnapshot = await getDocs(
-      query(collection(db, "users"), where("role", "==", "Staff")) 
+      query(collection(db, "users"), where("role", "==", "Staff"))
     );
     const fetchedPeople = userQuerySnapshot.docs
       .map((doc) => {
         const data = doc.data() as User;
         return { ...data, id: doc.id };
       })
-      .filter((person) => !person.name.startsWith("Kurir"));
+      .filter((person) => !person.name.startsWith("Kurir"))
+      .filter((person) => !cities || cities.includes(person.location));
 
     const currentDate = selectedDate
       ? new Date(
-          selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000
-        )
-          .toISOString()
-          .split("T")[0]
+        selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000
+      )
+        .toISOString()
+        .split("T")[0]
       : new Date().toISOString().split("T")[0];
     const promises = fetchedPeople.map(async (user) => {
       const attendanceDocId = `${user.name}-${currentDate}`;
@@ -193,15 +234,15 @@ export const fetchAttendance = async (selectedDate: Date) => {
       const attendanceDocSnapshot = await getDoc(attendanceDocRef);
       const attendanceData = attendanceDocSnapshot.exists()
         ? {
-            ...attendanceDocSnapshot.data(),
-            location: user.location,
-          }
+          ...attendanceDocSnapshot.data(),
+          location: user.location,
+        }
         : {
-            name: user.name,
-            location: user.location,
-            clock_in: "",
-            clock_out: "",
-          };
+          name: user.name,
+          location: user.location,
+          clock_in: "",
+          clock_out: "",
+        };
 
       return attendanceData as any;
     });
@@ -249,7 +290,7 @@ export const updateAttendance = async (
       return Timestamp.fromDate(date);
     };
 
-    const updateObject: Record<string, any> = {};
+    const updateObject: Record<string, any> = { date: formatedDate };
 
     if (payload.clockInHours !== "" && payload.clockInMinutes !== "") {
       const clockInDate = new Date(baseDate);
@@ -315,7 +356,6 @@ export const updateAttendance = async (
       const updateObjectWithName = {
         ...updateObject,
         name: payload.selectedName,
-        date: baseDate,
       };
       await setDoc(attendanceDocRef, updateObjectWithName);
     }

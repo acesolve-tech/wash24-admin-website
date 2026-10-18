@@ -1,12 +1,12 @@
 "use server";
 
 import { cookies } from "next/headers";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import { SESSION_COOKIE, verifySessionToken } from "./session";
 
 export async function decodeToken() {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+    const token = cookieStore.get(SESSION_COOKIE)?.value;
 
     if (!token) {
       return {
@@ -16,14 +16,22 @@ export async function decodeToken() {
       };
     }
 
-    const decoded = jwt.decode(token) as JwtPayload;
+    const session = await verifySessionToken(token);
+    if (!session) {
+      return {
+        success: false,
+        data: null,
+        message: "Token tidak valid atau sudah kedaluwarsa",
+      };
+    }
 
     return {
       success: true,
-      data: decoded,
+      data: session,
       message: "Token decoded successfully",
     };
-  } catch (error: any) {
+  } catch (error) {
+    console.error("decodeToken:", error);
     return {
       success: false,
       data: null,

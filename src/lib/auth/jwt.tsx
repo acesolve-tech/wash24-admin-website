@@ -1,26 +1,24 @@
 "use server";
 
-import jwt from "jsonwebtoken";
+import { createSessionToken, SessionPayload } from "./session";
 
-const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET || "";
-
-export async function setJWT(payload: any) {
-  if (!JWT_SECRET) {
-    return { success: false, data: null, message: "JWT SECRET not found" };
-  }
- 
+export async function setJWT(payload: SessionPayload) {
   try {
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+    const token = await createSessionToken(payload);
+    if (!token) {
+      return { success: false, data: null, message: "JWT SECRET not found" };
+    }
     return {
       success: true,
       data: token,
-      message: "JWT Token Create Successfully",
+      message: "JWT Token Created Successfully"
     };
-  } catch (error: any) {
+  } catch (error) {
+    console.error("setJWT:", error);
     return {
       success: false,
       data: null,
-      message: "Failed to Create JWT Token",
+      message: "Failed to Create JWT Token"
     };
   }
 }

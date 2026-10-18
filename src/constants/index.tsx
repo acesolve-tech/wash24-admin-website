@@ -1,4 +1,5 @@
 import { SidebarItem } from "@/types/sidebar";
+import { LOCATIONS } from "./locations";
 import {
   FileText,
   Clock,
@@ -9,16 +10,7 @@ import {
   Banknote,
 } from "lucide-react";
 
-export const LOCATIONS = [
-  { title: "Malang", key: "mlg", collectionName: "malang" },
-  { title: "Surabaya Pusat", key: "sby", collectionName: "surabaya" },
-  { title: "Surabaya Barat", key: "sby2", collectionName: "surabaya-2" },
-  { title: "Surabaya Timur", key: "sby3", collectionName: "surabaya-3" },
-  // { title: "Surabaya Selatan", key: "sby4", collectionName: "surabaya-4" },
-  { title: "Jakarta Selatan", key: "jkt3", collectionName: "jakarta-3" },
-  { title: "Hotel dan Karpet", key: "hotel-n-karpet", collectionName: "hotel-n-karpet" },
-  // { title: "Jakarta Pusat", key: "jkt4", collectionName: "jakarta-4" },
-];
+export { LOCATIONS } from "./locations";
 
 const generateLocationSubItems = (
   basePath: string,
@@ -88,25 +80,3 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
   //   subItems: generateLocationSubItems("/stock"),
   // },
 ];
-
-export const ROUTE_PERMISSIONS = SIDEBAR_ITEMS.flatMap((item) => {
-  const routes = [];
-
-  function hasSubItems(
-    item: SidebarItem
-  ): item is SidebarItem & { subItems: SidebarItem[] } {
-    return "subItems" in item && Array.isArray(item.subItems);
-  }
-
-  if (item.path !== "#") {
-    routes.push({ path: item.path, role: item.role });
-  }
-
-  if (hasSubItems(item)) {
-    routes.push(
-      ...item.subItems.map((sub) => ({ path: sub.path, role: item.role }))
-    );
-  }
-
-  return routes;
-});

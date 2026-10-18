@@ -1,5 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 
+export type AttendanceType = "clock_in" | "clock_out" | "rest_start" | "rest_end";
+
 export type AttendanceGeo = {
   lat: number;
   lng: number;
@@ -9,10 +11,7 @@ export type AttendanceGeo = {
 export type Attendance = {
   name: string;
   location: string;
-  clock_in: Timestamp;
-  clock_out: Timestamp;
-  clock_in_photo?: string;
-  clock_out_photo?: string;
-  clock_in_location?: AttendanceGeo;
-  clock_out_location?: AttendanceGeo;
-};
+  date?: string;
+} & Partial<Record<AttendanceType, Timestamp>> &
+  Partial<Record<`${AttendanceType}_photo`, string>> &
+  Partial<Record<`${AttendanceType}_location`, AttendanceGeo>>;

@@ -1,13 +1,22 @@
 "use client";
 import { Label } from "@/components/ui/label";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { DataTable } from "./data-table";
-import { Attendance, AttendanceGeo } from "@/types/attendance";
+import { Attendance, AttendanceGeo, AttendanceType } from "@/types/attendance";
+import { ATTENDANCE_LABELS } from "@/constants/attendance";
 import { ColumnDef } from "@tanstack/react-table";
 import { Timestamp } from "firebase/firestore";
 import { Camera, MapPin, Pen } from "lucide-react";
 import { fetchAttendance } from "@/lib/attendance";
 import { userStore } from "@/store/user";
+import { getAttendanceCities } from "@/config/access";
+import { STAFF_CITIES } from "@/constants/locations";
 import AttendanceReportForm from "@/components/popup/attendance-report-form";
 import AttendanceDetailPreview from "@/components/popup/attendance-detail-preview";
 import Loading from "@/components/Loading";
@@ -20,6 +29,10 @@ type DetailPreview = {
 } | null;
 
 const Page = () => {
+  const user = userStore((state: any) => state.user);
+  const cities = useMemo(() => getAttendanceCities(user), [user]);
+  const cityKey = cities ? cities.join(",") : "ALL";
+
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -30,15 +43,16 @@ const Page = () => {
   const [detailPreview, setDetailPreview] = useState<DetailPreview>(null);
 
   const fetchData = async () => {
+    if (!user.role) return;
     setLoading(true);
-    const result = await fetchAttendance(selectedDate);
-    setData((result.success && result.data) ?? result.data);
+    const result = await fetchAttendance(selectedDate, cities);
+    setData(result.success && result.data ? result.data : []);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, [selectedDate]);
+  }, [selectedDate, user.role, cityKey]);
 
   return (
     <div className="min-h-[calc(100dvh-40px)] overflow-y-auto space-y-6">
@@ -49,6 +63,9 @@ const Page = () => {
           data={data}
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
+          cityOptions={cities ?? STAFF_CITIES}
+          exportCities={cities}
+          defaultCity={user.location}
         />
       </div>
       {openEditForm.status && (
@@ -122,204 +139,78 @@ const ClockIcons = ({
   );
 };
 
+const TIME_COLUMNS: { type: AttendanceType; showDate: boolean }[] = [
+  { type: "clock_in", showDate: false },
+  { type: "clock_out", showDate: true },
+  { type: "rest_start", showDate: true },
+  { type: "rest_end", showDate: true },
+];
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+const formatAttendanceTime = (value: unknown, showDate: boolean) => {
+  if (!(value instanceof Timestamp)) return null;
+  const date = value.toDate();
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  if (!showDate) return time;
+  return `${time} (${pad(date.getDate())}/${pad(
+    date.getMonth() + 1
+  )}/${date.getFullYear()})`;
+};
+
 const getColumns = (
   setOpenEditForm: Dispatch<SetStateAction<{ status: boolean; details: any }>>,
   setDetailPreview: Dispatch<SetStateAction<DetailPreview>>
 ): ColumnDef<Attendance>[] => [
-  {
-    header: "Name",
-    accessorKey: "name",
-  },
-  {
-    header: "Cabang",
-    accessorKey: "location",
-  },
-  {
-    header: "Datang Kerja",
-    accessorKey: "clock_in",
-    cell: ({ row }) => {
-      const clock_in = row.getValue("clock_in");
-      const attendance = row.original;
+    {
+      header: "Name",
+      accessorKey: "name",
+    },
+    {
+      header: "Cabang",
+      accessorKey: "location",
+    },
+    ...TIME_COLUMNS.map(
+      ({ type, showDate }): ColumnDef<Attendance> => ({
+        header: ATTENDANCE_LABELS[type],
+        accessorKey: type,
+        cell: ({ row }) => {
+          const attendance = row.original;
+          const formatted = formatAttendanceTime(row.getValue(type), showDate);
 
-      if (clock_in && clock_in instanceof Timestamp) {
-        const { seconds, nanoseconds } = clock_in;
-        const milliseconds = seconds * 1000 + nanoseconds / 1000000;
-        const formattedDate = new Date(milliseconds);
+          if (!formatted) return <div className=""> - </div>;
 
-        const options: Intl.DateTimeFormatOptions = {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        };
-
-        const formatter = new Intl.DateTimeFormat("en-US", options);
-        const formatted = formatter.format(formattedDate);
-        const adjustedFormatted = formatted.replace(/^24/, "00");
-        return (
-          <div className="flex items-center gap-2">
-            <span>{adjustedFormatted}</span>
-            <ClockIcons
-              photoUrl={attendance.clock_in_photo}
-              location={attendance.clock_in_location}
-              title="Datang Kerja"
-              staffName={attendance.name}
-              setDetailPreview={setDetailPreview}
+          return (
+            <div className="flex items-center gap-2">
+              <span>{formatted}</span>
+              <ClockIcons
+                photoUrl={attendance[`${type}_photo`]}
+                location={attendance[`${type}_location`]}
+                title={ATTENDANCE_LABELS[type]}
+                staffName={attendance.name}
+                setDetailPreview={setDetailPreview}
+              />
+            </div>
+          );
+        },
+      })
+    ),
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const user = userStore((state: any) => state.user);
+        if (user.role == "Master") {
+          const attendance = row.original;
+          return (
+            <Pen
+              className="text-gray-400 hover:text-gray-600 cursor-pointer h-4"
+              onClick={() =>
+                setOpenEditForm({ status: true, details: attendance })
+              }
             />
-          </div>
-        );
-      } else {
-        return <div className=""> - </div>;
-      }
+          );
+        }
+        return;
+      },
     },
-  },
-  {
-    header: "Pulang Kerja",
-    accessorKey: "clock_out",
-    cell: ({ row }) => {
-      const clock_out = row.getValue("clock_out");
-      const attendance = row.original;
-
-      if (clock_out && clock_out instanceof Timestamp) {
-        const { seconds, nanoseconds } = clock_out;
-        const milliseconds = seconds * 1000 + nanoseconds / 1000000;
-        const formattedDate = new Date(milliseconds);
-
-        const options: Intl.DateTimeFormatOptions = {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        };
-
-        const formatter = new Intl.DateTimeFormat("en-US", options);
-        const formatted = formatter.format(formattedDate);
-
-        const dateParts = formatted.split(", ")[0].split("/");
-        const adjustedFormatted =
-          formatted.split(", ")[1].replace(/^24/, "00") +
-          " (" +
-          dateParts[1] +
-          "/" +
-          dateParts[0] +
-          "/" +
-          dateParts[2] +
-          ")";
-
-        return (
-          <div className="flex items-center gap-2">
-            <span>{adjustedFormatted}</span>
-            <ClockIcons
-              photoUrl={attendance.clock_out_photo}
-              location={attendance.clock_out_location}
-              title="Pulang Kerja"
-              staffName={attendance.name}
-              setDetailPreview={setDetailPreview}
-            />
-          </div>
-        );
-      } else {
-        return <div className=""> - </div>;
-      }
-    },
-  },
-  {
-    header: "Istirahat Mulai",
-    accessorKey: "rest_start",
-    cell: ({ row }) => {
-      const clock_out = row.getValue("rest_start");
-
-      if (clock_out && clock_out instanceof Timestamp) {
-        const { seconds, nanoseconds } = clock_out;
-        const milliseconds = seconds * 1000 + nanoseconds / 1000000;
-        const formattedDate = new Date(milliseconds);
-
-        const options: Intl.DateTimeFormatOptions = {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        };
-
-        const formatter = new Intl.DateTimeFormat("en-US", options);
-        const formatted = formatter.format(formattedDate);
-
-        const dateParts = formatted.split(", ")[0].split("/");
-        const adjustedFormatted =
-          formatted.split(", ")[1].replace(/^24/, "00") +
-          " (" +
-          dateParts[1] +
-          "/" +
-          dateParts[0] +
-          "/" +
-          dateParts[2] +
-          ")";
-
-        return <div className="">{adjustedFormatted}</div>;
-      } else {
-        return <div className=""> - </div>;
-      }
-    },
-  },
-  {
-    header: "Istirahat Selesai",
-    accessorKey: "rest_end",
-    cell: ({ row }) => {
-      const clock_out = row.getValue("rest_end");
-
-      if (clock_out && clock_out instanceof Timestamp) {
-        const { seconds, nanoseconds } = clock_out;
-        const milliseconds = seconds * 1000 + nanoseconds / 1000000;
-        const formattedDate = new Date(milliseconds);
-
-        const options: Intl.DateTimeFormatOptions = {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        };
-
-        const formatter = new Intl.DateTimeFormat("en-US", options);
-        const formatted = formatter.format(formattedDate);
-
-        const dateParts = formatted.split(", ")[0].split("/");
-        const adjustedFormatted =
-          formatted.split(", ")[1].replace(/^24/, "00") +
-          " (" +
-          dateParts[1] +
-          "/" +
-          dateParts[0] +
-          "/" +
-          dateParts[2] +
-          ")";
-
-        return <div className="">{adjustedFormatted}</div>;
-      } else {
-        return <div className=""> - </div>;
-      }
-    },
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      const user = userStore((state: any) => state.user);
-      if (user.role == "Master") {
-        const attendance = row.original;
-        return (
-          <Pen
-            className="text-gray-400 hover:text-gray-600 cursor-pointer h-4"
-            onClick={() =>
-              setOpenEditForm({ status: true, details: attendance })
-            }
-          />
-        );
-      }
-      return;
-    },
-  },
-];
+  ];

@@ -44,29 +44,33 @@ function formatTimestamp(timestamp: Timestamp | null) {
   }
 }
 
-async function getStaffNoKurir() {
+async function getStaff(cities?: string[] | null) {
   const userQuerySnapshot = await getDocs(
     query(collection(db, "users"), where("role", "==", "Staff"))
   );
 
-  const fetchedPeople = userQuerySnapshot.docs.map((doc) => {
-    const data = doc.data() as User;
-    return { ...data, id: doc.id };
-  });
-  // .filter((person) => !person.name.startsWith("Kurir"));
-
-  return fetchedPeople;
+  return userQuerySnapshot.docs
+    .map((doc) => {
+      const data = doc.data() as User;
+      return { ...data, id: doc.id };
+    })
+    .filter((person) => !cities || cities.includes(person.location));
 }
 
-export async function downloadToExcel(year: number, month: number) {
-  const users = await getStaffNoKurir();
+export async function downloadToExcel(
+  year: number,
+  month: number,
+  cities?: string[] | null
+) {
+  const users = await getStaff(cities);
+  const lastDay = new Date(year, month, 0).getDate();
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-  const endDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   const columns: IJsonSheet[] = [];
 
   for (const user of users) {
-    const { name, position } = user;
+    const { name, position = "" } = user;
     const AttendanceCollection = collection(db, "attendance");
     const AttendanceQuery = query(
       AttendanceCollection,

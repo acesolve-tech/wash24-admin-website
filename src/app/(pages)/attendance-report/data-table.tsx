@@ -30,16 +30,34 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   selectedDate: Date;
   setSelectedDate: Dispatch<SetStateAction<Date>>;
+  cityOptions: string[];
+  exportCities: string[] | null;
+  defaultCity?: string;
 }
+
+const pickCity = (options: string[], preferred?: string) =>
+  options.find((city) => city === preferred) ?? options[0] ?? "";
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   selectedDate,
   setSelectedDate,
+  cityOptions,
+  exportCities,
+  defaultCity,
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [locationFilter, setLocationFilter] = useState("Jakarta");
+  const [locationFilter, setLocationFilter] = useState(() =>
+    pickCity(cityOptions, defaultCity)
+  );
+  const cityOptionsKey = cityOptions.join(",");
+
+  useEffect(() => {
+    setLocationFilter((current) =>
+      cityOptions.includes(current) ? current : pickCity(cityOptions, defaultCity)
+    );
+  }, [cityOptionsKey, defaultCity]);
 
   const table = useReactTable({
     data,
@@ -72,37 +90,31 @@ export function DataTable<TData, TValue>({
           setSelectedDate={setSelectedDate}
         />
 
-        <ToggleGroup
-          type="single"
-          value={locationFilter}
-          onValueChange={(value) => setLocationFilter(value)}
-          className="space-x-2 border ml-2 rounded-md py-1 px-2 h-full"
-        >
-          <ToggleGroupItem
-            value="Jakarta"
-            className="px-3 h-fit py-1 cursor-pointer"
+        {cityOptions.length > 1 && (
+          <ToggleGroup
+            type="single"
+            value={locationFilter}
+            onValueChange={(value) => setLocationFilter(value)}
+            className="space-x-2 border ml-2 rounded-md py-1 px-2 h-full"
           >
-            Jakarta
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="Surabaya"
-            className="px-3 h-fit py-1 cursor-pointer"
-          >
-            Surabaya
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="Malang"
-            className="px-3 h-fit py-1 cursor-pointer"
-          >
-            Malang
-          </ToggleGroupItem>
-        </ToggleGroup>
+            {cityOptions.map((city) => (
+              <ToggleGroupItem
+                key={city}
+                value={city}
+                className="px-3 h-fit py-1 cursor-pointer"
+              >
+                {city}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
         <button
           className="self-end cursor-pointer ml-auto bg-purple-700 hover:bg-purple-800 text-white px-5 py-1.5 rounded-md text-nowrap"
           onClick={() =>
             downloadToExcel(
               selectedDate?.getFullYear(),
-              selectedDate?.getMonth() + 1
+              selectedDate?.getMonth() + 1,
+              exportCities
             )
           }
         >
@@ -120,9 +132,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}

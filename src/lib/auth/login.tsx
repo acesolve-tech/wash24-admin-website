@@ -23,14 +23,17 @@ export async function login(email: string, password: string) {
     const userData = userDocSnap.data();
     const payload = {
       uid,
-      email: userCredential.user.email,
+      email: userCredential.user.email ?? email,
       name: userData.name || "",
       role: userData.role || "Staff",
       location: userData.location || "",
     };
-    const token = (await setJWT(payload))?.data || ""; 
+    const jwtResult = await setJWT(payload);
+    if (!jwtResult.success || !jwtResult.data) {
+      return { success: false, data: null, message: jwtResult.message };
+    }
 
-    await setCookies("token", token);
+    await setCookies("token", jwtResult.data);
 
     return {
       success: true,

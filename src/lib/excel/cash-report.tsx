@@ -38,6 +38,7 @@ export async function downloadCashReportRangeToExcel(
       income,
       expense,
       note: raw.note ?? "",
+      note_2: raw.note_2 ?? "",
     };
   });
 
@@ -58,6 +59,10 @@ export async function downloadCashReportRangeToExcel(
 
   const rangeIncome = inRange.reduce((acc, r) => acc + r.income, 0);
   const rangeExpense = inRange.reduce((acc, r) => acc + r.expense, 0);
+  // Saldo per tanggal akhir rentang (bukan saldo semua data sampai hari ini).
+  const balanceAtEnd =
+    withRunningTotal.filter((row) => row.date && row.date <= end).at(-1)
+      ?.currentTotal ?? 0;
 
   const data: Array<(typeof inRange)[number]> = [...inRange];
   data.push({
@@ -67,7 +72,8 @@ export async function downloadCashReportRangeToExcel(
     income: rangeIncome,
     expense: rangeExpense,
     note: "",
-    currentTotal: Math.round(runningTotal),
+    note_2: "",
+    currentTotal: balanceAtEnd,
   });
 
   const sheet: IJsonSheet = {
@@ -79,7 +85,8 @@ export async function downloadCashReportRangeToExcel(
       { label: "Tunai Masuk", value: "income" },
       { label: "Tunai Keluar", value: "expense" },
       { label: "Total Tunai", value: "currentTotal" },
-      { label: "Nota", value: "note" },
+      { label: "Nota 1", value: "note" },
+      { label: "Nota 2", value: "note_2" },
     ],
   };
 

@@ -2,11 +2,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Label } from "../ui/label";
 import { Camera, MapPin, RefreshCw, X } from "lucide-react";
-import { AttendanceGeo } from "@/types/attendance";
+import { AttendanceGeo, AttendanceType } from "@/types/attendance";
+import { ATTENDANCE_LABELS } from "@/constants/attendance";
 
 interface AttendanceCaptureProps {
   staffName: string;
-  attendanceType: "clock_in" | "clock_out";
+  attendanceType: AttendanceType;
   onCancel: () => void;
   onConfirm: (payload: {
     photo: string;
@@ -48,7 +49,7 @@ export default function AttendanceCapture({
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(() => {});
+          videoRef.current?.play().catch(() => { });
         };
       }
     } catch {
@@ -164,12 +165,17 @@ export default function AttendanceCapture({
   };
 
   const canSubmit = !!photo && !!location && !submitting;
-  const label = attendanceType === "clock_in" ? "Datang Kerja" : "Pulang Kerja";
+  const label = ATTENDANCE_LABELS[attendanceType];
+
+  const handleCancel = () => {
+    if (submitting) return;
+    onCancel();
+  };
 
   return (
     <div
       className="fixed w-full h-full flex justify-center items-center bg-black/60 px-2 z-50 top-0 left-0"
-      onClick={onCancel}
+      onClick={handleCancel}
     >
       <div
         className="w-full sm:w-[420px] bg-white rounded-md p-5 flex flex-col gap-y-4 max-h-[95vh] overflow-y-auto relative"
@@ -178,8 +184,11 @@ export default function AttendanceCapture({
         <div className="flex items-center justify-between">
           <Label className="text-xl font-semibold">Absensi {label}</Label>
           <button
-            className="hover:bg-black/10 rounded-full p-1.5 cursor-pointer"
-            onClick={onCancel}
+            type="button"
+            aria-label="Tutup"
+            className="hover:bg-black/10 rounded-full p-1.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={handleCancel}
+            disabled={submitting}
           >
             <X className="w-4 h-4" />
           </button>
@@ -221,11 +230,10 @@ export default function AttendanceCapture({
                 type="button"
                 onClick={capturePhoto}
                 disabled={!!cameraError}
-                className={`flex-1 rounded-md py-1.5 text-white flex items-center justify-center gap-2 ${
-                  cameraError
+                className={`flex-1 rounded-md py-1.5 text-white flex items-center justify-center gap-2 ${cameraError
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-[var(--primary-color)] cursor-pointer"
-                }`}
+                  }`}
               >
                 <Camera className="w-4 h-4" /> Ambil Foto
               </button>
@@ -246,13 +254,12 @@ export default function AttendanceCapture({
           <Label className="text-sm">Lokasi GPS</Label>
           <div className="flex items-start gap-2 rounded-md border p-2 text-sm">
             <MapPin
-              className={`w-4 h-4 mt-0.5 shrink-0 ${
-                gpsStatus === "ready"
+              className={`w-4 h-4 mt-0.5 shrink-0 ${gpsStatus === "ready"
                   ? "text-green-600"
                   : gpsStatus === "error"
-                  ? "text-red-600"
-                  : "text-gray-500"
-              }`}
+                    ? "text-red-600"
+                    : "text-gray-500"
+                }`}
             />
             <div className="flex-1">
               {gpsStatus === "locating" && (
@@ -293,24 +300,22 @@ export default function AttendanceCapture({
             <iframe
               title="Peta Lokasi"
               className="w-full h-[200px] rounded-md border"
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${
-                location.lng - 0.004
-              },${location.lat - 0.004},${location.lng + 0.004},${
-                location.lat + 0.004
-              }&layer=mapnik&marker=${location.lat},${location.lng}`}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.lng - 0.004
+                },${location.lat - 0.004},${location.lng + 0.004},${location.lat + 0.004
+                }&layer=mapnik&marker=${location.lat},${location.lng}`}
               loading="lazy"
             />
           )}
         </div>
 
         <button
+          type="button"
           onClick={handleConfirm}
           disabled={!canSubmit}
-          className={`w-full rounded-md py-2 text-white ${
-            canSubmit
+          className={`w-full rounded-md py-2 text-white ${canSubmit
               ? "bg-[var(--primary-color)] cursor-pointer"
               : "bg-gray-400 cursor-not-allowed"
-          }`}
+            }`}
         >
           {submitting ? "Menyimpan..." : `Konfirmasi ${label}`}
         </button>
