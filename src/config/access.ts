@@ -1,4 +1,5 @@
 import { LocationKey, LOCATIONS, STAFF_CITIES } from "@/constants/locations";
+import { APP_OUTLETS, AppOutlet } from "@/constants/app-outlets";
 
 export type Role = "Master" | "Admin" | "Staff";
 
@@ -35,6 +36,10 @@ const PAGE_ROLES: Record<string, Role[]> = {
     "/attendance-report": ["Master", "Admin"],
     "/staff": ["Master"],
     "/otp": ["Master"],
+};
+
+const APP_PAGE_ROLES: Record<string, Role[]> = {
+    "/app-services": ["Master", "Admin"],
 };
 
 const BRANCH_SECTIONS = ["delivery", "delivery-history", "production", "cash-report"];
@@ -74,6 +79,14 @@ export function getAttendanceCities(user: AccessUser | null | undefined): string
     return STAFF_CITIES.filter((city) => cities.includes(city));
 }
 
+export function getAppOutlets(user: AccessUser | null | undefined): AppOutlet[] {
+    if (isMaster(user)) return APP_OUTLETS;
+    const branches = getAllowedBranches(user);
+    return APP_OUTLETS.filter((outlet) => branches.includes(outlet.branch));
+}
+
+export const canManageAppCatalog = (user: AccessUser | null | undefined) => isMaster(user);
+
 export function canAccessPath(pathname: string, user: AccessUser | null | undefined): boolean {
     const role = normalizeRole(user?.role);
     if (!role) return false;
@@ -85,6 +98,11 @@ export function canAccessPath(pathname: string, user: AccessUser | null | undefi
 
     const pageRoles = PAGE_ROLES[path];
     if (pageRoles) return pageRoles.includes(role);
+
+    const appPageRoles = APP_PAGE_ROLES[path];
+    if (appPageRoles) {
+        return appPageRoles.includes(role) && getAppOutlets(user).length > 0;
+    }
 
     const [, section, branch, ...rest] = path.split("/");
     if (!BRANCH_SECTIONS.includes(section) || !branch || rest.length > 0) {

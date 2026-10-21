@@ -8,6 +8,7 @@ import {
   Box,
   Truck,
   Banknote,
+  Smartphone,
 } from "lucide-react";
 
 export { LOCATIONS } from "./locations";
@@ -72,6 +73,12 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
       ...generateLocationSubItems("/cash-report"),
       { title: "Kas", path: "/cash-report/kas" },
     ],
+  },
+  {
+    title: "App Customer",
+    icon: <Smartphone className="size-7" />,
+    path: "#",
+    subItems: [{ title: "Layanan", path: "/app-services" }],
   },
   // {
   //   title: "Stok",
