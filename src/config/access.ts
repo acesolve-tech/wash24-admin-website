@@ -38,8 +38,9 @@ const PAGE_ROLES: Record<string, Role[]> = {
     "/otp": ["Master"],
 };
 
-const APP_PAGE_ROLES: Record<string, Role[]> = {
-    "/app-services": ["Master", "Admin"],
+const APP_PAGES: Record<string, { roles: Role[]; hasDetail?: boolean }> = {
+    "/app-services": { roles: ["Master", "Admin"] },
+    "/app-customers": { roles: ["Master", "Admin"], hasDetail: true },
 };
 
 const BRANCH_SECTIONS = ["delivery", "delivery-history", "production", "cash-report"];
@@ -87,6 +88,8 @@ export function getAppOutlets(user: AccessUser | null | undefined): AppOutlet[] 
 
 export const canManageAppCatalog = (user: AccessUser | null | undefined) => isMaster(user);
 
+export const canEditAppCustomer = (user: AccessUser | null | undefined) => isMaster(user);
+
 export function canAccessPath(pathname: string, user: AccessUser | null | undefined): boolean {
     const role = normalizeRole(user?.role);
     if (!role) return false;
@@ -99,12 +102,14 @@ export function canAccessPath(pathname: string, user: AccessUser | null | undefi
     const pageRoles = PAGE_ROLES[path];
     if (pageRoles) return pageRoles.includes(role);
 
-    const appPageRoles = APP_PAGE_ROLES[path];
-    if (appPageRoles) {
-        return appPageRoles.includes(role) && getAppOutlets(user).length > 0;
+    const [, section, branch, ...rest] = path.split("/");
+
+    const appPage = APP_PAGES[`/${section}`];
+    if (appPage) {
+        if (rest.length > 0 || (branch && !appPage.hasDetail)) return false;
+        return appPage.roles.includes(role) && getAppOutlets(user).length > 0;
     }
 
-    const [, section, branch, ...rest] = path.split("/");
     if (!BRANCH_SECTIONS.includes(section) || !branch || rest.length > 0) {
         return false;
     }

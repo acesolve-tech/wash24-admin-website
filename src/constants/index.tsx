@@ -78,7 +78,10 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     title: "App Customer",
     icon: <Smartphone className="size-7" />,
     path: "#",
-    subItems: [{ title: "Layanan", path: "/app-services" }],
+    subItems: [
+      { title: "Customer", path: "/app-customers" },
+      { title: "Layanan", path: "/app-services" },
+    ],
   },
   // {
   //   title: "Stok",
