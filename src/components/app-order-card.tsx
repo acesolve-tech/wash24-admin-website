@@ -1,3 +1,4 @@
+import { Pen } from "lucide-react";
 import { APP_ORDER_METHOD_LABEL, APP_ORDER_STATUS } from "@/constants/app-orders";
 import { formatDateTime, formatQuantity, formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,13 @@ export function AppOrderStatusBadge({ status }: { status: AppOrderStatus }) {
     );
 }
 
-export default function AppOrderCard({ order }: { order: AppOrder }) {
+export default function AppOrderCard({
+    order,
+    onEdit,
+}: {
+    order: AppOrder;
+    onEdit?: () => void;
+}) {
     const isPickup = order.method === "pickup";
 
     return (
@@ -27,10 +34,23 @@ export default function AppOrderCard({ order }: { order: AppOrder }) {
                     <p className="text-sm font-semibold tracking-wide text-gray-900">{order.id}</p>
                     <p className="text-xs text-gray-500">
                         {formatDateTime(order.createdAt)}
-                        {order.outletName && ` · Outlet ${order.outletName}`}
+                        {order.outletName ? ` · Outlet ${order.outletName}` : " · Tanpa outlet"}
                     </p>
                 </div>
-                <AppOrderStatusBadge status={order.status} />
+                <div className="flex items-center gap-2">
+                    <AppOrderStatusBadge status={order.status} />
+                    {onEdit && (
+                        <button
+                            type="button"
+                            onClick={onEdit}
+                            aria-label={`Ubah pesanan ${order.id}`}
+                            className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer"
+                        >
+                            <Pen className="size-3" />
+                            Ubah
+                        </button>
+                    )}
+                </div>
             </header>
 
             <ul className="space-y-1 text-sm">
@@ -41,7 +61,7 @@ export default function AppOrderCard({ order }: { order: AppOrder }) {
                             {item.itemName}
                             <span className="text-gray-500">
                                 {" "}
-                                · {formatQuantity(item.quantity, item.unit)} × {formatRupiah(item.price)}
+                                · {formatQuantity(item.quantity, item.unit)} x {formatRupiah(item.price)}
                             </span>
                         </span>
                         <span className="shrink-0 text-gray-900">

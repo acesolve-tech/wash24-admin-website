@@ -47,7 +47,8 @@ export const config = {
     "/production/:path*",
     "/cash-report/:path*",
     "/stock/:path*",
-    "/app-services",
+    "/app-orders",
     "/app-customers/:path*",
+    "/app-services",
   ],
 };

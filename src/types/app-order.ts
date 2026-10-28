@@ -27,3 +27,13 @@ export type AppOrder = {
     outletName: string;
     pickupAddress: string;
 };
+
+export type AppOrderInput = {
+    outletId: string;
+    method: AppOrderMethod;
+    pickupAddress: string;
+    note: string;
+    status: AppOrderStatus;
+    items: AppOrderItem[];
+    deliveryFee: number;
+};

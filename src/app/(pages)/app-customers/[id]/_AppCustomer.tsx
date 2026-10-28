@@ -8,14 +8,17 @@ import Loading from "@/components/Loading";
 import AppOrderCard from "@/components/app-order-card";
 import AppCustomerTierBadge from "@/components/app-customer-tier-badge";
 import AppCustomerForm from "@/components/popup/app-customer-form";
+import AppOrderForm from "@/components/popup/app-order-form";
 import { canEditAppCustomer, getAppOutlets, isMaster } from "@/config/access";
 import { fetchAppCustomer } from "@/lib/app-customers";
 import { fetchCustomerOrders } from "@/lib/app-orders";
+import { fetchAppServices } from "@/lib/app-services";
 import { formatDate } from "@/lib/format";
 import { formatPhoneDisplay, routeIdToPhone, whatsappUrl } from "@/lib/phone";
 import { userStore } from "@/store/user";
 import { AppCustomer } from "@/types/app-customer";
 import { AppOrder } from "@/types/app-order";
+import { AppService } from "@/types/app-service";
 
 const AppCustomerPage = () => {
     const params = useParams();
@@ -24,10 +27,12 @@ const AppCustomerPage = () => {
 
     const user = userStore((state: any) => state.user);
     const canEdit = canEditAppCustomer(user);
+
     const outletIds = useMemo(
         () => (isMaster(user) ? null : getAppOutlets(user).map((outlet) => outlet.id)),
         [user]
     );
+    const outlets = useMemo(() => getAppOutlets(user), [user]);
 
     const [customer, setCustomer] = useState<AppCustomer | null>(null);
     const [orders, setOrders] = useState<AppOrder[]>([]);
@@ -37,6 +42,10 @@ const AppCustomerPage = () => {
     const [error, setError] = useState("");
     const [ordersError, setOrdersError] = useState("");
     const [formOpen, setFormOpen] = useState(false);
+    const [services, setServices] = useState<AppService[]>([]);
+    const [orderForm, setOrderForm] = useState<{ open: false } | { open: true; order: AppOrder | null }>({
+        open: false,
+    });
 
     const load = useCallback(async () => {
         if (!phone || !user.role) return;
@@ -59,7 +68,12 @@ const AppCustomerPage = () => {
         load();
     }, [load]);
 
+    useEffect(() => {
+        fetchAppServices().then((result) => setServices(result.data));
+    }, []);
+
     const closeForm = useCallback(() => setFormOpen(false), []);
+    const closeOrderForm = useCallback(() => setOrderForm({ open: false }), []);
 
     const backLink = (
         <Link
@@ -78,7 +92,7 @@ const AppCustomerPage = () => {
                 <div className="rounded-md border bg-white px-6 py-10 text-center">
                     <p className="font-semibold text-gray-800">Customer tidak ditemukan</p>
                     <p className="mt-1 text-sm text-gray-600">
-                        Nomor ini belum terdaftar, atau link-nya salah.
+                        Nomor ini belum terdaftar, atau linknya salah.
                     </p>
                 </div>
             </div>
@@ -111,7 +125,7 @@ const AppCustomerPage = () => {
                             <p className="text-sm text-gray-600">{formatPhoneDisplay(customer.phone)}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <a
+                            <a 
                                 href={whatsappUrl(customer.phone)}
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -135,7 +149,7 @@ const AppCustomerPage = () => {
 
                     <section aria-label="Data customer" className="rounded-md border bg-white p-5">
                         <dl className="grid gap-4 sm:grid-cols-2 text-sm">
-                            <div className="sm:col-span-2">
+                            <div className="sm: col-span-2">
                                 <dt className="text-xs text-gray-500">Alamat</dt>
                                 <dd className="text-gray-900 whitespace-pre-line">{customer.address || "-"}</dd>
                             </div>
@@ -169,14 +183,23 @@ const AppCustomerPage = () => {
 
                     <section aria-labelledby="orders-title" className="space-y-3">
                         <div className="flex flex-wrap items-end justify-between gap-2">
-                            <h2 id="orders-title" className="text-lg font-semibold text-gray-900">
-                                Riwayat Pesanan{orders.length > 0 && ` (${orders.length})`}
-                            </h2>
-                            {hiddenCount > 0 && (
-                                <p className="text-xs text-gray-500">
-                                    {hiddenCount} pesanan di outlet lain tidak ditampilkan.
-                                </p>
-                            )}
+                            <div>
+                                <h2 id="orders-title" className="text-lg font-semibold text-gray-900">
+                                    Riwayat Pesanan{orders.length > 0 && ` (${orders.length})`}
+                                </h2>
+                                {hiddenCount > 0 && (
+                                    <p className="text-xs text-gray-500">
+                                        {hiddenCount} pesanan di outlet lain tidak ditampilkan.
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setOrderForm({ open: true, order: null })}
+                                className="cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-md text-sm"
+                            >
+                                + Buat Pesanan
+                            </button>
                         </div>
 
                         {ordersError ? (
@@ -190,7 +213,11 @@ const AppCustomerPage = () => {
                         ) : (
                             <div className="grid gap-3 lg:grid-cols-2 items-start">
                                 {orders.map((order) => (
-                                    <AppOrderCard key={order.id} order={order} />
+                                    <AppOrderCard 
+                                        key={order.id}
+                                        order={order}
+                                        onEdit={() => setOrderForm({ open: true, order })}
+                                    />
                                 ))}
                             </div>
                         )}
@@ -199,12 +226,27 @@ const AppCustomerPage = () => {
             )}
 
             {formOpen && customer && (
-                <AppCustomerForm
+                <AppCustomerForm 
                     customer={customer}
                     actorEmail={user.email}
                     onClose={closeForm}
                     onSaved={() => {
                         setFormOpen(false);
+                        load();
+                    }}
+                />
+            )}
+            {orderForm.open && customer && (
+                <AppOrderForm 
+                    order={orderForm.order}
+                    customer={customer}
+                    customers={[customer]}
+                    services={services}
+                    outlets={outlets}
+                    actorEmail={user.email}
+                    onClose={closeOrderForm}
+                    onSaved={() => {
+                        setOrderForm({ open: false });
                         load();
                     }}
                 />

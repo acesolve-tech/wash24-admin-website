@@ -39,8 +39,9 @@ const PAGE_ROLES: Record<string, Role[]> = {
 };
 
 const APP_PAGES: Record<string, { roles: Role[]; hasDetail?: boolean }> = {
-    "/app-services": { roles: ["Master", "Admin"] },
+    "/app-orders": { roles: ["Master", "Admin"] },
     "/app-customers": { roles: ["Master", "Admin"], hasDetail: true },
+    "/app-services": { roles: ["Master", "Admin"] },
 };
 
 const BRANCH_SECTIONS = ["delivery", "delivery-history", "production", "cash-report"];
