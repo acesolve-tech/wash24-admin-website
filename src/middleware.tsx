@@ -49,6 +49,7 @@ export const config = {
     "/stock/:path*",
     "/app-orders",
     "/app-customers/:path*",
+    "/app-notifications",
     "/app-services",
   ],
 };

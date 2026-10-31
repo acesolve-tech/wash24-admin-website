@@ -41,6 +41,7 @@ const PAGE_ROLES: Record<string, Role[]> = {
 const APP_PAGES: Record<string, { roles: Role[]; hasDetail?: boolean }> = {
     "/app-orders": { roles: ["Master", "Admin"] },
     "/app-customers": { roles: ["Master", "Admin"], hasDetail: true },
+    "/app-notifications": { roles: ["Master", "Admin"] },
     "/app-services": { roles: ["Master", "Admin"] },
 };
 
@@ -90,6 +91,8 @@ export function getAppOutlets(user: AccessUser | null | undefined): AppOutlet[] 
 export const canManageAppCatalog = (user: AccessUser | null | undefined) => isMaster(user);
 
 export const canEditAppCustomer = (user: AccessUser | null | undefined) => isMaster(user);
+
+export const canBroadcastNotification = (user: AccessUser | null | undefined) => isMaster(user);
 
 export function canAccessPath(pathname: string, user: AccessUser | null | undefined): boolean {
     const role = normalizeRole(user?.role);

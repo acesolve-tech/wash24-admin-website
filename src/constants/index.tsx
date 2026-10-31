@@ -81,6 +81,7 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     subItems: [
       { title: "Pesanan", path: "/app-orders" },
       { title: "Customer", path: "/app-customers" },
+      { title: "Notifikasi", path: "/app-notifications" },
       { title: "Layanan", path: "/app-services" },
     ],
   },

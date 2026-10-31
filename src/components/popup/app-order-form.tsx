@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Info, Minus, Plus, X } from "lucide-react";
+import { BadgeCheck, Bell, Info, Minus, Plus, X } from "lucide-react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
@@ -19,7 +19,8 @@ import {
     APP_ORDER_STATUSES,
     APP_ORDER_UNIT_RULES,
 } from "@/constants/app-orders";
-import { AppOutlet } from "@/constants/app-outlets";
+import { AppOutlet, findAppOutlet } from "@/constants/app-outlets";
+import { orderNotificationText } from "@/constants/app-notifications";
 import {
     calcDeliveryFee,
     calcSubtotal,
@@ -131,6 +132,15 @@ function AppOrderForm({
     const autoFee = calcDeliveryFee(method, subtotal);
     const deliveryFee = method !== "pickup" ? 0 : feeManual ? Number(feeText || 0) : autoFee;
     const total = subtotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0);
+
+    const notificationPreview =
+        !isEdit || status !== order.status
+            ? orderNotificationText(isEdit ? status : "created", {
+                id: order?.id ?? "",
+                outletName: findAppOutlet(outletId)?.name ?? "",
+                method,
+            })
+            : null;
 
     const addableServices = useMemo(
         () =>
@@ -492,6 +502,7 @@ function AppOrderForm({
                     </div>
                 </dl>
 
+                {/* Catatan & status */}
                 <div className="grid gap-5 sm:grid-cols-[1fr_200px] mb-5">
                     <div className="grid gap-1.5">
                         <Label htmlFor="order-note">Catatan (opsional)</Label>
@@ -530,10 +541,18 @@ function AppOrderForm({
                         </Select>
                     </div>
                 </div>
-                {status === "pending" && (
-                    <p className="-mt-3 mb-5 text-xs text-gray-500">
-                        Selama status Menunggu, customer masih bisa membatalkan pesanan dari app.
-                    </p>
+                {(status === "pending" || notificationPreview) && (
+                    <div className="-mt-3 mb-5 space-y-1 text-xs text-gray-500">
+                        {status === "pending" && (
+                            <p>Selama status Menunggu, customer masih bisa membatalkan pesanan dari app.</p>
+                        )}
+                        {notificationPreview && (
+                            <p className="flex items-center gap-1.5 text-[var(--primary-color)]">
+                                <Bell className="size-3.5 shrink-0" />
+                                Customer akan menerima notifikasi &ldquo;{notificationPreview.title}&rdquo;.
+                            </p>
+                        )}
+                    </div>
                 )}
 
                 {error && (

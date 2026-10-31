@@ -9,6 +9,8 @@ import {
     DELIVERY_FEE,
     FREE_DELIVERY_MIN,
 } from "@/constants/app-orders";
+import { firestoreErrorMessage, SubscriptionError, toSubscriptionError } from "@/lib/firestore-errors";
+import { newNotificationRef, orderNotificationData } from "@/lib/app-notifications";
 import { AppServiceUnit } from "@/types/app-service";
 import { AppOrder, AppOrderInput, AppOrderItem, AppOrderMethod, AppOrderStatus } from "@/types/app-order";
 import {
@@ -74,12 +76,10 @@ export function toAppOrder(
     };
 }
 
-function errorMessage(error: unknown, fallback: string) {
-    const code = (error as { code?: string })?.code;
-    if (code === "permission-denied") return "Akses ke data pesanan ditolak oleh Firebase.";
-    if (code === "unavailable") return "Tidak ada koneksi ke server. Periksa internet lalu coba lagi.";
-    return fallback;
-}
+
+/* ------------------------------------------------------------------ */
+/* Calculation                                                            */
+/* ------------------------------------------------------------------ */
 
 export function calcDeliveryFee(method: AppOrderMethod, subtotal: number): number {
     if (method !== "pickup") return 0;
@@ -94,6 +94,10 @@ export function roundQuantity(quantity: number, unit: string): number {
     const factor = 10 ** (rule?.decimals ?? 2);
     return Math.round(quantity * factor) / factor;
 }
+
+/* ------------------------------------------------------------------ */
+/* Validation                                                            */
+/* ------------------------------------------------------------------ */
 
 export function validateAppOrderInput(
     input: AppOrderInput,
@@ -161,6 +165,10 @@ function toOrderFields(value: AppOrderInput) {
     };
 }
 
+/* ------------------------------------------------------------------ */
+/* Read                                                                */
+/* ------------------------------------------------------------------ */
+
 export async function fetchCustomerOrders(
     phone: string,
     outletIds: string[] | null
@@ -182,21 +190,16 @@ export async function fetchCustomerOrders(
         return {
             success: false,
             data: { orders: [], hiddenCount: 0 },
-            message: errorMessage(error, "Riwayat pesanan gagal dimuat. Coba lagi."),
+            message: firestoreErrorMessage(error, "Riwayat pesanan gagal dimuat. Coba lagi."),
         };
     }
 }
-
-export type OrdersSubscriptionError = {
-    message: string;
-    indexUrl: string | null;
-};
 
 export function subscribeOutletOrders(
     outletIds: string[],
     max: number,
     onData: (orders: AppOrder[], hasMore: boolean) => void,
-    onError: (error: OrdersSubscriptionError) => void
+    onError: (error: SubscriptionError) => void
 ): () => void {
     if (outletIds.length === 0) {
         onData([], false);
@@ -218,21 +221,13 @@ export function subscribeOutletOrders(
             );
             onData(orders, snapshot.size >= max);
         },
-        (error) => {
-            const code = (error as { code?: string })?.code;
-            if (code === "failed-precondition") {
-                const indexUrl = /https:\/\/console\.firebase\.google\.com\S+/.exec(error.message)?.[0];
-                onError({
-                    message:
-                        "Index Firestore untuk daftar pesanan belum dibuat. Akun Master: klik link di bawah, lalu Create index. Tunggu 2–5 menit sampai statusnya Enabled, lalu muat ulang halaman ini.",
-                    indexUrl: indexUrl ?? null,
-                });
-                return;
-            }
-            onError({ message: errorMessage(error, "Daftar pesanan gagal dimuat. Coba lagi."), indexUrl: null });
-        }
+        (error) => onError(toSubscriptionError(error, "Daftar pesanan gagal dimuat. Coba lagi."))
     );
 }
+
+/* ------------------------------------------------------------------ */
+/* Write                                                               */
+/* ------------------------------------------------------------------ */
 
 const generateOrderId = () => "WSH-" + String(Date.now() + Math.floor(Math.random() * 1000)).slice(-6);
 
@@ -262,16 +257,25 @@ export async function createAppOrder(
                 const existing = await transaction.get(orderRef);
                 if (existing.exists()) throw new Error(ID_TAKEN);
                 const now = new Date().toISOString();
+                const fields = toOrderFields(value);
                 transaction.set(orderRef, {
                     id,
                     createdAt: now,
-                    ...toOrderFields(value),
+                    ...fields,
                     serverCreatedAt: serverTimestamp(),
                     source: "admin",
                     createdBy: actorEmail,
                     updatedAt: now,
                     updatedBy: actorEmail,
                 });
+                const notification = orderNotificationData("created", {
+                    id,
+                    customerPhone: phone,
+                    outletId: fields.outletId,
+                    outletName: fields.outletName,
+                    method: fields.method,
+                });
+                if (notification) transaction.set(newNotificationRef(), notification);
             });
             return { success: true, data: { id }, message: "" };
         } catch (err) {
@@ -283,7 +287,7 @@ export async function createAppOrder(
             return {
                 success: false,
                 data: { id: "" },
-                message: errorMessage(err, "Pesanan gagal disimpan. Coba lagi."),
+                message: firestoreErrorMessage(err, "Pesanan gagal disimpan. Coba lagi."),
             };
         }
     }
@@ -310,12 +314,23 @@ export async function updateAppOrder(
             if (!current.exists()) throw new Error(ORDER_NOT_FOUND);
             currentStatus = toAppOrder(phone, orderId, current.data()).status;
             if (currentStatus !== expectedStatus) throw new Error(STATUS_CHANGED);
+            const fields = toOrderFields(value);
             transaction.update(orderRef, {
-                ...toOrderFields(value),
+                ...fields,
                 updatedAt: new Date().toISOString(),
                 serverUpdatedAt: serverTimestamp(),
                 updatedBy: actorEmail,
             });
+            if (fields.status !== currentStatus) {
+                const notification = orderNotificationData(fields.status, {
+                    id: orderId,
+                    customerPhone: phone,
+                    outletId: fields.outletId,
+                    outletName: fields.outletName,
+                    method: fields.method,
+                });
+                if (notification) transaction.set(newNotificationRef(), notification);
+            }
         });
         return { success: true, data: null, message: "" };
     } catch (err) {
@@ -333,7 +348,7 @@ export async function updateAppOrder(
         return {
             success: false,
             data: null,
-            message: errorMessage(err, "Perubahan pesanan gagal disimpan. Coba lagi."),
+            message: firestoreErrorMessage(err, "Perubahan pesanan gagal disimpan. Coba lagi."),
         };
     }
 }

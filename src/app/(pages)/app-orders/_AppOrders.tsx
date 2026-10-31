@@ -17,10 +17,12 @@ import Loading from "@/components/Loading";
 import { AppOrderStatusBadge } from "@/components/app-order-card";
 import AppOrderForm from "@/components/popup/app-order-form";
 import AppCustomerForm from "@/components/popup/app-customer-form";
+import SubscriptionErrorAlert from "@/components/subscription-error-alert";
 import { getAppOutlets } from "@/config/access";
 import { ACTIVE_ORDER_STATUSES, APP_ORDER_PAGE_SIZE, APP_ORDER_STATUS, APP_ORDER_STATUSES } from "@/constants/app-orders";
 import { fetchAppCustomers } from "@/lib/app-customers";
-import { OrdersSubscriptionError, subscribeOutletOrders } from "@/lib/app-orders";
+import { subscribeOutletOrders } from "@/lib/app-orders";
+import { SubscriptionError } from "@/lib/firestore-errors";
 import { fetchAppServices } from "@/lib/app-services";
 import { formatDateTime, formatQuantity, formatRupiah } from "@/lib/format";
 import { formatPhoneDisplay, phoneMatches } from "@/lib/phone";
@@ -29,7 +31,6 @@ import { userStore } from "@/store/user";
 import { AppCustomer } from "@/types/app-customer";
 import { AppOrder, AppOrderStatus } from "@/types/app-order";
 import { AppService } from "@/types/app-service";
-import { error } from "console";
 
 type StatusFilter = "active" | "all" | AppOrderStatus;
 
@@ -61,7 +62,7 @@ const AppOrdersPage = () => {
     const [hasMore, setHasMore] = useState(false);
     const [max, setMax] = useState(APP_ORDER_PAGE_SIZE);
     const [ordersLoaded, setOrdersLoaded] = useState(false);
-    const [ordersError, setOrdersError] = useState<OrdersSubscriptionError | null>(null);
+    const [ordersError, setOrdersError] = useState<SubscriptionError | null>(null);
 
     const [customers, setCustomers] = useState<AppCustomer[]>([]);
     const [services, setServices] = useState<AppService[]>([]);
@@ -144,19 +145,20 @@ const AppOrdersPage = () => {
     const showOutletColumn = outlets.length > 1;
 
     return (
-        <div className="min-h[calc(100dvh-40px)] space-y-6">
+        <div className="min-h-[calc(100dvh-40px)] space-y-6">
             <div className="space-y-1 pr-24">
                 <Label className="text-3xl font-bold w-fit">Pesanan App</Label>
                 <p className="text-sm text-gray-600">
                     Pesanan dari checkout app dan yang dicatat admin
-                    {outlets.length === 1 ? ` di outlet ${outlets[0].name}` : ""}. Daftar diperbarui otomatis. 
+                    {outlets.length === 1 ? ` di outlet ${outlets[0].name}` : ""}. Daftar diperbarui
+                    otomatis.
                 </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
                 <div className="relative w-full sm:w-80">
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                    <Input 
+                    <Input
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Cari no. pesanan, nama, atau nomor HP"
@@ -221,21 +223,7 @@ const AppOrdersPage = () => {
                 })}
             </div>
 
-            {ordersError && (
-                <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 space-y-2">
-                    <p>{ordersError.message}</p>
-                    {ordersError.indexUrl && (
-                        <a 
-                            href={ordersError.indexUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block font-semibold underline break-all"
-                        >
-                            Buat index di Firebase Console
-                        </a>
-                    )}
-                </div>
-            )}
+            {ordersError && <SubscriptionErrorAlert error={ordersError} />}
             {refError && (
                 <p role="alert" className="text-sm text-red-600">
                     {refError}{" "}
@@ -337,7 +325,7 @@ const AppOrdersPage = () => {
             )}
 
             {form.open && (
-                <AppOrderForm 
+                <AppOrderForm
                     order={form.order}
                     customer={form.order ? customerByPhone.get(form.order.customerPhone) ?? null : null}
                     customers={customers}
@@ -351,7 +339,7 @@ const AppOrdersPage = () => {
                 />
             )}
             {customerFormOpen && (
-                <AppCustomerForm 
+                <AppCustomerForm
                     customer={null}
                     actorEmail={user.email}
                     onClose={closeCustomerForm}
