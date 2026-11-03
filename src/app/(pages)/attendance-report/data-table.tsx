@@ -31,7 +31,7 @@ interface DataTableProps<TData, TValue> {
   selectedDate: Date;
   setSelectedDate: Dispatch<SetStateAction<Date>>;
   cityOptions: string[];
-  exportCities: string[] | null;
+  exportBranches: string[] | null;
   defaultCity?: string;
 }
 
@@ -44,7 +44,7 @@ export function DataTable<TData, TValue>({
   selectedDate,
   setSelectedDate,
   cityOptions,
-  exportCities,
+  exportBranches,
   defaultCity,
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -114,7 +114,7 @@ export function DataTable<TData, TValue>({
             downloadToExcel(
               selectedDate?.getFullYear(),
               selectedDate?.getMonth() + 1,
-              exportCities
+              exportBranches
             )
           }
         >

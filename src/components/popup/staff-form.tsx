@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { findLocation, getStaffBranch, LOCATIONS } from "@/constants/locations";
 
 interface StaffFormProps {
   fetchData: any;
@@ -23,6 +24,7 @@ interface StaffFormProps {
 function StaffForm(props: StaffFormProps) {
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [branch, setBranch] = useState("");
   const [phone, setPhone] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
@@ -33,6 +35,7 @@ function StaffForm(props: StaffFormProps) {
 
     setName(details?.name || "");
     setLocation(details?.location || "");
+    setBranch(details ? getStaffBranch(details)?.key ?? "" : "");
     setPhone(details?.phone || "");
     setBankName(details?.bank_name || "");
     setBankAccount(details?.bank_account || "");
@@ -43,14 +46,19 @@ function StaffForm(props: StaffFormProps) {
     e.preventDefault();
 
     if (actionType === "Save") {
+      const selectedBranch = findLocation(branch);
       const data = {
         name,
-        location,
+        // Keep `location` as the city: attendance filters and reports match on it.
+        // Legacy staff without a chosen branch keep their existing city untouched.
+        location: selectedBranch?.city ?? location,
+        ...(selectedBranch && { branch: selectedBranch.key }),
         phone,
         bank_name: bankName,
         bank_account: bankAccount,
         position,
-        role: "Staff",
+        // Keep the existing role so editing an Admin doesn't demote them.
+        role: props.openEditForm.details?.role || "Staff",
         updated_at: new Date(),
       };
 
@@ -73,7 +81,8 @@ function StaffForm(props: StaffFormProps) {
     >
       <div className="mb-5 flex justify-between items-end">
         <Label className="text-xl font-semibold">Detail Karyawan</Label>
-        {props.openEditForm.details && (
+        {props.openEditForm.details &&
+          props.openEditForm.details.role !== "Admin" && (
           <button
             className="text-red-600 cursor-pointer hover:underline"
             onClick={(e) => onSubmit(e, "Delete")}
@@ -96,22 +105,24 @@ function StaffForm(props: StaffFormProps) {
       <div className="grid w-full items-center gap-1.5 mb-5">
         <Label htmlFor="location">Lokasi</Label>
         <Select
-          value={location}
+          value={branch}
           onValueChange={(value) => {
-            console.log(value);
-            if(value) {
-              setLocation(value)
-            }
-            // value ?? setLocation(value);
+            if (value) setBranch(value);
           }}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Pilih lokasi" />
+            <SelectValue
+              placeholder={
+                location ? `${location} (pilih cabang)` : "Pilih lokasi"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Surabaya">Surabaya</SelectItem>
-            <SelectItem value="Jakarta">Jakarta</SelectItem>
-            <SelectItem value="Malang">Malang</SelectItem>
+            {LOCATIONS.map((option) => (
+              <SelectItem key={option.key} value={option.key}>
+                {option.title}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

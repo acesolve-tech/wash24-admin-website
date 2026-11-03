@@ -3,10 +3,12 @@ import { Label } from "@/components/ui/label";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { DataTable } from "./data-table";
 import { User } from "@/types/user";
+import { getStaffBranchLabel } from "@/constants/locations";
 import { ColumnDef } from "@tanstack/react-table";
 import { userStore } from "@/store/user";
 import { Pen } from "lucide-react";
 import { fetchUsersByRole } from "@/lib/staff";
+import { isMaster } from "@/config/access";
 import StaffForm from "@/components/popup/staff-form";
 import Loading from "@/components/Loading";
 
@@ -20,8 +22,11 @@ const Page = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const result = await fetchUsersByRole();
-    setData(result.data);
+    const [staff, admins] = await Promise.all([
+      fetchUsersByRole("Staff"),
+      fetchUsersByRole("Admin"),
+    ]);
+    setData([...(staff.data ?? []), ...(admins.data ?? [])]);
     setLoading(false);
   };
 
@@ -66,6 +71,11 @@ const getColumns = (
   {
     header: "Cabang",
     accessorKey: "location",
+    cell: ({ row }) => getStaffBranchLabel(row.original),
+  },
+  {
+    header: "Role",
+    accessorKey: "role",
   },
   {
     header: "Posisi",
@@ -87,7 +97,7 @@ const getColumns = (
     id: "actions",
     cell: ({ row }) => {
       const user = userStore((state: any) => state.user);
-      if (user.role == "Master") {
+      if (isMaster(user)) {
         const attendance = row.original;
         return (
           <Pen

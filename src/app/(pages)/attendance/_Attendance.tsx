@@ -27,7 +27,8 @@ import Clock from "@/components/Clock";
 import { userStore } from "@/store/user";
 import AttendanceCapture from "@/components/popup/attendance-capture";
 import { ATTENDANCE_LABELS } from "@/constants/attendance";
-import { getAttendanceCities } from "@/config/access";
+import { getAttendanceBranches } from "@/config/access";
+import { isStaffInBranches } from "@/constants/locations";
 import { AttendanceGeo, AttendanceType } from "@/types/attendance";
 
 const STATUS_DURATION_MS = 4000;
@@ -96,8 +97,8 @@ const Page = () => {
   const [status, setStatus] = useState<StatusState | null>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const cities = useMemo(() => getAttendanceCities(user), [user]);
-  const cityKey = cities ? cities.join(",") : "ALL";
+  const branches = useMemo(() => getAttendanceBranches(user), [user]);
+  const branchKey = branches ? branches.join(",") : "ALL";
 
   useEffect(() => {
     if (!user.role) return;
@@ -106,14 +107,14 @@ const Page = () => {
       if (res.success && res.data) {
         setStaffList(
           res.data.filter(
-            (staff: StaffOption & { location?: string }) =>
-              !cities || cities.includes(staff.location ?? "")
+            (staff: StaffOption & { location?: string; branch?: string }) =>
+              isStaffInBranches(staff, branches)
           )
         );
       }
     };
     loadStaff();
-  }, [user.role, cityKey]);
+  }, [user.role, branchKey]);
 
   useEffect(() => {
     fetchUser();
