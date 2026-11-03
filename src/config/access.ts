@@ -21,14 +21,10 @@ export const ACCOUNT_BRANCHES: Record<string, LocationKey[]> = {
     "sbybarat@new-kurirwash24.com": ["sby2"],
     "sbytimur@new-adminwash24.com": ["sby3"],
     "sbytimur@new-kurirwash24.com": ["sby3"],
-    "sbyselatan@new-adminwash24.com": ["sby4"],
-    "sbyselatan@new-kurirwash24.com": ["sby4"],
 
     // Jakarta
     "jktselatan@adminwash24.com": ["jkt3"],
     "jktselatan@kurirwash24.com": ["jkt3"],
-    "jktpusat@new-adminwash24.com": ["jkt4"],
-    "jktpusat@new-kurirwash24.com": ["jkt4"],
 };
 
 const PAGE_ROLES: Record<string, Role[]> = {
@@ -81,6 +77,10 @@ export function getAttendanceCities(user: AccessUser | null | undefined): string
     );
     return STAFF_CITIES.filter((city) => cities.includes(city));
 }
+
+export const getAttendanceBranches = (
+    user: AccessUser | null | undefined
+): LocationKey[] | null => (isMaster(user) ? null : getAllowedBranches(user));
 
 export function getAppOutlets(user: AccessUser | null | undefined): AppOutlet[] {
     if (isMaster(user)) return APP_OUTLETS;

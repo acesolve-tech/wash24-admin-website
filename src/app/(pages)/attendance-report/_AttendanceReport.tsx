@@ -15,7 +15,7 @@ import { Timestamp } from "firebase/firestore";
 import { Camera, MapPin, Pen } from "lucide-react";
 import { fetchAttendance } from "@/lib/attendance";
 import { userStore } from "@/store/user";
-import { getAttendanceCities } from "@/config/access";
+import { getAttendanceBranches, getAttendanceCities } from "@/config/access";
 import { STAFF_CITIES } from "@/constants/locations";
 import AttendanceReportForm from "@/components/popup/attendance-report-form";
 import AttendanceDetailPreview from "@/components/popup/attendance-detail-preview";
@@ -31,7 +31,8 @@ type DetailPreview = {
 const Page = () => {
   const user = userStore((state: any) => state.user);
   const cities = useMemo(() => getAttendanceCities(user), [user]);
-  const cityKey = cities ? cities.join(",") : "ALL";
+  const branches = useMemo(() => getAttendanceBranches(user), [user]);
+  const branchKey = branches ? branches.join(",") : "ALL";
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>([]);
@@ -45,14 +46,14 @@ const Page = () => {
   const fetchData = async () => {
     if (!user.role) return;
     setLoading(true);
-    const result = await fetchAttendance(selectedDate, cities);
+    const result = await fetchAttendance(selectedDate, branches);
     setData(result.success && result.data ? result.data : []);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, [selectedDate, user.role, cityKey]);
+  }, [selectedDate, user.role, branchKey]);
 
   return (
     <div className="min-h-[calc(100dvh-40px)] overflow-y-auto space-y-6">
@@ -64,7 +65,7 @@ const Page = () => {
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
           cityOptions={cities ?? STAFF_CITIES}
-          exportCities={cities}
+          exportBranches={branches}
           defaultCity={user.location}
         />
       </div>

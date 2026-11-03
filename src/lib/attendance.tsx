@@ -2,6 +2,7 @@ import { db, storage } from "@/config/firebase";
 import { ATTENDANCE_LABELS } from "@/constants/attendance";
 import { AttendanceGeo, AttendanceType } from "@/types/attendance";
 import { User } from "@/types/user";
+import { isStaffInBranches } from "@/constants/locations";
 import {
   collection,
   doc,
@@ -206,7 +207,7 @@ export const insertOrUpdateAttendance = async (
 
 export const fetchAttendance = async (
   selectedDate: Date,
-  cities?: string[] | null
+  branches?: string[] | null
 ) => {
   try {
     const userQuerySnapshot = await getDocs(
@@ -218,7 +219,7 @@ export const fetchAttendance = async (
         return { ...data, id: doc.id };
       })
       .filter((person) => !person.name.startsWith("Kurir"))
-      .filter((person) => !cities || cities.includes(person.location));
+      .filter((person) => isStaffInBranches(person, branches));
 
     const currentDate = selectedDate
       ? new Date(
