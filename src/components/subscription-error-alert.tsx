@@ -8,7 +8,7 @@ export default function SubscriptionErrorAlert({ error }: { error: SubscriptionE
         >
             <p>{error.message}</p>
             {error.indexUrl && (
-                <a 
+                <a
                     href={error.indexUrl}
                     target="_blank"
                     rel="noopener noreferrer"

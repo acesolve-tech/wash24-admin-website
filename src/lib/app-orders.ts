@@ -10,7 +10,7 @@ import {
     FREE_DELIVERY_MIN,
 } from "@/constants/app-orders";
 import { firestoreErrorMessage, SubscriptionError, toSubscriptionError } from "@/lib/firestore-errors";
-import { newNotificationRef, orderNotificationData } from "@/lib/app-notifications";
+import { newNotificationRef, orderNotificationData, requestPush } from "@/lib/app-notifications";
 import { AppServiceUnit } from "@/types/app-service";
 import { AppOrder, AppOrderInput, AppOrderItem, AppOrderMethod, AppOrderStatus } from "@/types/app-order";
 import {
@@ -246,6 +246,8 @@ export async function createAppOrder(
     if (error) return { success: false, data: { id: "" }, message: error };
 
     const customerRef = doc(db, APP_CUSTOMER_COLLECTION, phone);
+    const notificationRef = newNotificationRef();
+    let notified = false;
 
     for (let attempt = 0; attempt < 3; attempt++) {
         const id = generateOrderId();
@@ -275,8 +277,10 @@ export async function createAppOrder(
                     outletName: fields.outletName,
                     method: fields.method,
                 });
-                if (notification) transaction.set(newNotificationRef(), notification);
+                notified = !!notification;
+                if (notification) transaction.set(notificationRef, notification);
             });
+            if (notified) void requestPush(notificationRef.id);
             return { success: true, data: { id }, message: "" };
         } catch (err) {
             const reason = (err as Error)?.message;
@@ -307,6 +311,8 @@ export async function updateAppOrder(
 
     const orderRef = doc(db, APP_CUSTOMER_COLLECTION, phone, APP_ORDER_SUBCOLLECTION, orderId);
     let currentStatus: AppOrderStatus = expectedStatus;
+    const notificationRef = newNotificationRef();
+    let notified = false;
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -321,6 +327,7 @@ export async function updateAppOrder(
                 serverUpdatedAt: serverTimestamp(),
                 updatedBy: actorEmail,
             });
+            notified = false;
             if (fields.status !== currentStatus) {
                 const notification = orderNotificationData(fields.status, {
                     id: orderId,
@@ -329,9 +336,11 @@ export async function updateAppOrder(
                     outletName: fields.outletName,
                     method: fields.method,
                 });
-                if (notification) transaction.set(newNotificationRef(), notification);
+                notified = !!notification;
+                if (notification) transaction.set(notificationRef, notification);
             }
         });
+        if (notified) void requestPush(notificationRef.id);
         return { success: true, data: null, message: "" };
     } catch (err) {
         const reason = (err as Error)?.message;

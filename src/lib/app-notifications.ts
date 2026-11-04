@@ -7,11 +7,13 @@ import {
     orderNotificationText,
     SYSTEM_SENDER,
 } from "@/constants/app-notifications";
-import { firestoreErrorMessage, SubscriptionError, toSubscriptionError } from "./firestore-errors";
-import { normalizePhone } from "./phone";
+import { PUSH_API_PATH, PushStatus } from "@/constants/push";
+import { firestoreErrorMessage, SubscriptionError, toSubscriptionError } from "@/lib/firestore-errors";
+import { normalizePhone } from "@/lib/phone";
 import {
     AppNotification,
     AppNotificationInput,
+    AppNotificationPush,
     AppNotificationType,
 } from "@/types/app-notification";
 import { AppOrderMethod } from "@/types/app-order";
@@ -37,6 +39,24 @@ const toText = (value: unknown) => (typeof value === "string" ? value : "");
 
 const notificationsRef = () => collection(db, APP_NOTIFICATIONS_COLLECTION);
 
+const PUSH_STATUSES: PushStatus[] = ["pending", "sent", "partial", "failed", "skipped"];
+
+function toPush(value: unknown): AppNotificationPush | null {
+    if (!value || typeof value !== "object") return null;
+    const push = value as Record<string, unknown>;
+    if (!PUSH_STATUSES.includes(push.status as PushStatus)) return null;
+    const count = (key: string) => (typeof push[key] === "number" ? (push[key] as number) : 0);
+    return {
+        status: push.status as PushStatus,
+        sent: count("sent"),
+        failed: count("failed"),
+        removed: count("removed"),
+        startedAt: toText(push.startedAt),
+        sentAt: toText(push.sentAt),
+        error: toText(push.error),
+    };
+}
+
 export function toAppNotification(id: string, data: Record<string, unknown>): AppNotification {
     const createdAt =
         data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : toText(data.createdAt);
@@ -55,6 +75,7 @@ export function toAppNotification(id: string, data: Record<string, unknown>): Ap
         outletId: toText(data.outletId),
         createdAt,
         createdBy: toText(data.createdBy),
+        push: toPush(data.push),
     };
 }
 
@@ -79,6 +100,30 @@ export function orderNotificationData(
     };
 }
 
+export async function requestPush(
+    notificationId: string
+): Promise<Result<AppNotificationPush | null>> {
+    try {
+        const response = await fetch(PUSH_API_PATH, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notificationId }),
+        });
+        const body = (await response.json().catch(() => null)) as {
+            ok?: boolean;
+            message?: string;
+            push?: AppNotificationPush;
+        } | null;
+        return {
+            success: response.ok && !!body?.ok,
+            data: body?.push ?? null,
+            message: body?.message || (response.ok ? "" : "Push gagal dikirim."),
+        };
+    } catch {
+        return { success: false, data: null, message: "Server push tidak bisa dihubungi." };
+    }
+}
+
 export function validateAppNotificationInput(
     input: AppNotificationInput,
     { canBroadcast, requireOutlet }: { canBroadcast: boolean; requireOutlet: boolean }
@@ -99,7 +144,7 @@ export function validateAppNotificationInput(
     if (!isBroadcast && requireOutlet && !value.outletId) {
         return fail("Pelanggan ini belum pernah pesan di outlet Anda.");
     }
-    if (!value.title) return fail("Jusul wajib diisi.");
+    if (!value.title) return fail("Judul wajib diisi.");
     if (value.title.length > titleMax) return fail(`Judul maksimal ${titleMax} karakter.`);
     if (!value.body) return fail("Isi pesan wajib diisi.");
     if (value.body.length > bodyMax) return fail(`Isi pesan maksimal ${bodyMax} karakter.`);
@@ -126,6 +171,7 @@ export async function sendAppNotification(
             serverCreatedAt: serverTimestamp(),
             createdBy: options.actorEmail,
         });
+        void requestPush(ref.id);
         return { success: true, data: { id: ref.id }, message: "" };
     } catch (err) {
         return {

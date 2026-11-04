@@ -502,7 +502,6 @@ function AppOrderForm({
                     </div>
                 </dl>
 
-                {/* Catatan & status */}
                 <div className="grid gap-5 sm:grid-cols-[1fr_200px] mb-5">
                     <div className="grid gap-1.5">
                         <Label htmlFor="order-note">Catatan (opsional)</Label>
