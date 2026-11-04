@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { STAFF_CITIES } from "@/constants/locations";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -68,15 +69,15 @@ export function DataTable<TData, TValue>({
             onValueChange={(value) => setLocationFilter(value)}
             className="space-x-2 border ml-2 rounded-md py-1 px-2 h-full"
           >
-            <ToggleGroupItem value="Jakarta" className="px-3 h-fit py-1 cursor-pointer">
-              Jakarta
-            </ToggleGroupItem>
-            <ToggleGroupItem value="Surabaya" className="px-3 h-fit py-1 cursor-pointer">
-              Surabaya
-            </ToggleGroupItem>
-            <ToggleGroupItem value="Malang" className="px-3 h-fit py-1 cursor-pointer">
-              Malang
-            </ToggleGroupItem>
+            {STAFF_CITIES.map((city) => (
+              <ToggleGroupItem
+                key={city}
+                value={city}
+                className="px-3 h-fit py-1 cursor-pointer"
+              >
+                {city}
+              </ToggleGroupItem>
+            ))}
           </ToggleGroup>
         </div>
         <button 

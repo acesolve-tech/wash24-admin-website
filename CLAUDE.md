@@ -21,7 +21,7 @@ This is a **multi-location laundry admin dashboard** (Wash24) built with Next.js
 
 1. Login with Firebase email/password → Firestore lookup for user role/location
 2. JWT issued and stored in a cookie
-3. OTP 2FA step (skipped for master@wash24.com and kelsonsusilo@gmail.com)
+3. OTP 2FA step (skipped for master@wash24.com, kelsonsusilo@gmail.com and malang@master.com)
 4. Redirect based on role and location
 
 Auth utilities live in `src/lib/auth/`. User state is held in a Zustand store at `src/store/user.tsx` and hydrated in the `(pages)` layout.

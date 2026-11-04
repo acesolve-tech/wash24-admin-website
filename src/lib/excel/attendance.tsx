@@ -1,5 +1,6 @@
 import { db } from "@/config/firebase";
 import { User } from "@/types/user";
+import { isStaffInBranches } from "@/constants/locations";
 import {
   collection,
   getDocs,
@@ -44,7 +45,7 @@ function formatTimestamp(timestamp: Timestamp | null) {
   }
 }
 
-async function getStaff(cities?: string[] | null) {
+async function getStaff(branches?: string[] | null) {
   const userQuerySnapshot = await getDocs(
     query(collection(db, "users"), where("role", "==", "Staff"))
   );
@@ -54,15 +55,15 @@ async function getStaff(cities?: string[] | null) {
       const data = doc.data() as User;
       return { ...data, id: doc.id };
     })
-    .filter((person) => !cities || cities.includes(person.location));
+    .filter((person) => isStaffInBranches(person, branches));
 }
 
 export async function downloadToExcel(
   year: number,
   month: number,
-  cities?: string[] | null
+  branches?: string[] | null
 ) {
-  const users = await getStaff(cities);
+  const users = await getStaff(branches);
   const lastDay = new Date(year, month, 0).getDate();
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;

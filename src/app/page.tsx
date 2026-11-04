@@ -86,7 +86,8 @@ export default function Home() {
     if (
       (otp != generateOtp || generateOtp === "") &&
       email !== "master@wash24.com" &&
-      email !== "kelsonsusilo@gmail.com"
+      email !== "kelsonsusilo@gmail.com" &&
+      email !== "malang@master.com"
     ) {
       setError("OTP Salah. Masukan Kode OTP dengan benar");
       return;
@@ -160,7 +161,8 @@ export default function Home() {
                 />
               </div>
               {email.trim() !== "kelsonsusilo@gmail.com" &&
-                email.trim() !== "master@wash24.com" && (
+                email.trim() !== "master@wash24.com" &&
+                email.trim() !== "malang@master.com" && (
                   <div className="flex justify-between items-center space-y-1.5">
                     <InputOTP
                       maxLength={6}
