@@ -25,10 +25,10 @@ export type OrderNotificationEvent = "created" | AppOrderStatus;
 export function orderNotificationText(
     event: OrderNotificationEvent,
     order: { id: string; outletName: string; method: AppOrderMethod }
-) : { title: string; body: string } | null {
+): { title: string; body: string } | null {
     const id = order.id;
     const atOutlet = order.outletName ? ` di outlet ${order.outletName}` : "";
-    const outlet = order.outletName ?  `outlet ${order.outletName}` : "outlet";
+    const outlet = order.outletName ? `outlet ${order.outletName}` : "outlet";
 
     switch (event) {
         case "created":

@@ -94,7 +94,7 @@ function AppNotificationForm({
     const selectedOrder = orders.find((order) => order.id === orderId) ?? null;
     const notEligible = !isMaster && ordersState === "ready" && orders.length === 0;
 
-    const outletId = 
+    const outletId =
         selectedOrder?.outletId ??
         (isMaster ? "" : outlets.length === 1 ? outlets[0].id : orders[0]?.outletId ?? "");
 
@@ -137,7 +137,7 @@ function AppNotificationForm({
     };
 
     return (
-        <div 
+        <div
             className="fixed w-screen h-[100dvh] top-0 left-0 bg-black/50 flex justify-center items-center z-10 px-4"
             onClick={() => !saving && onClose()}
         >
@@ -148,7 +148,7 @@ function AppNotificationForm({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="app-notification-form-title"
-                className="2-full sm:w-[520px] bg-white rounded-md p-6 sm:p-7 max-h-[92dvh] overflow-y-auto"
+                className="w-full sm:w-[520px] bg-white rounded-md p-6 sm:p-7 max-h-[92dvh] overflow-y-auto"
             >
                 <Label id="app-notification-form-title" className="text-xl font-semibold mb-5 block">
                     Kirim Notifikasi
@@ -178,7 +178,7 @@ function AppNotificationForm({
                                 Semua pelanggan
                             </ToggleGroupItem>
                         </ToggleGroup>
-                    ) : (   
+                    ) : (
                         <p className="flex gap-2 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600">
                             <Info className="size-4 shrink-0" />
                             Admin outlet hanya bisa mengirim ke pelanggan yang pernah pesan di outlet{" "}
@@ -189,13 +189,14 @@ function AppNotificationForm({
 
                 {isBroadcast ? (
                     <p className="mb-5 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                        Dikirim ke <strong>semua pelanggan</strong> yang sudah terdaftar. Pelanggan yang mendaftar setelah ini tidak akan melihatnya.
+                        Dikirim ke <strong>semua pelanggan</strong> yang sudah terdaftar. Pelanggan yang
+                        mendaftar setelah ini tidak akan melihatnya.
                     </p>
                 ) : (
                     <>
                         <div className="grid w-full gap-1.5 mb-5">
                             <Label htmlFor="notification-customer">Pelanggan</Label>
-                            <AppCustomerPicker 
+                            <AppCustomerPicker
                                 id="notification-customer"
                                 customers={customers}
                                 value={phone}
@@ -213,7 +214,8 @@ function AppNotificationForm({
                             )}
                             {notEligible && (
                                 <span className="text-xs text-red-600">
-                                    Pelanggan ini belum pernah pesan di outlet Anda, jadi tidak bisa dikirimi notifikasi dari akun ini.
+                                    Pelanggan ini belum pernah pesan di outlet Anda, jadi tidak bisa dikirimi
+                                    notifikasi dari akun ini.
                                 </span>
                             )}
                         </div>
@@ -243,7 +245,8 @@ function AppNotificationForm({
                                     </SelectContent>
                                 </Select>
                                 <span className="text-xs text-gray-500">
-                                    Kalau diisi, pelanggan yang mengetuk notifikasi langsung dibawa ke detail pesanan itu.
+                                    Kalau diisi, pelanggan yang mengetuk notifikasi langsung dibawa ke detail
+                                    pesanan itu.
                                 </span>
                             </div>
                         )}
@@ -257,7 +260,7 @@ function AppNotificationForm({
                             {title.length}/{APP_NOTIFICATION_LIMITS.titleMax}
                         </span>
                     </div>
-                    <Input 
+                    <Input
                         id="notification-title"
                         value={title}
                         maxLength={APP_NOTIFICATION_LIMITS.titleMax}
@@ -277,7 +280,7 @@ function AppNotificationForm({
                             {body.length}/{APP_NOTIFICATION_LIMITS.bodyMax}
                         </span>
                     </div>
-                    <textarea 
+                    <textarea
                         id="notification-body"
                         rows={4}
                         value={body}
@@ -286,7 +289,7 @@ function AppNotificationForm({
                             touch();
                             setBody(event.target.value);
                         }}
-                        placeholder="Tulis oesan untuk pelanggan"
+                        placeholder="Tulis pesan untuk pelanggan"
                         disabled={saving}
                         className={textareaClass}
                     />
@@ -319,12 +322,19 @@ function AppNotificationForm({
                 {confirmBroadcast ? (
                     <div className="rounded-md border border-amber-200 bg-amber-50 p-3 space-y-3">
                         <p className="text-sm text-amber-900">
-                            Kirim notifikasi ini ke <strong>semua pelanggan</strong>
+                            Kirim notifikasi ini ke <strong>semua pelanggan</strong>?
                         </p>
                         <div className="flex gap-2">
                             <button
                                 type="button"
                                 onClick={() => setConfirmBroadcast(false)}
+                                disabled={saving}
+                                className="flex-1 rounded-md border border-gray-300 bg-white py-1.5 text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
                                 disabled={saving}
                                 className="flex-[2] bg-[var(--primary-color)] text-white rounded-md py-1.5 cursor-pointer flex justify-center items-center gap-2 disabled:opacity-60"
                             >
@@ -339,7 +349,7 @@ function AppNotificationForm({
                             type="button"
                             onClick={onClose}
                             disabled={saving}
-                            className="flex-1/2 rounded-md border border-gray-300 py-1.5 text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
+                            className="flex-1 rounded-md border border-gray-300 py-1.5 text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
                         >
                             Batal
                         </button>

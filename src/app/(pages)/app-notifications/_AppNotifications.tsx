@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Trash, Trash2 } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,6 +15,7 @@ import {
 import Loading from "@/components/Loading";
 import SubscriptionErrorAlert from "@/components/subscription-error-alert";
 import AppNotificationForm from "@/components/popup/app-notification-form";
+import AppNotificationPushStatus from "@/components/app-notification-push-status";
 import { canBroadcastNotification, getAppOutlets, isMaster } from "@/config/access";
 import {
     APP_NOTIFICATION_PAGE_SIZE,
@@ -24,7 +25,11 @@ import {
 } from "@/constants/app-notifications";
 import { findAppOutlet } from "@/constants/app-outlets";
 import { fetchAppCustomers } from "@/lib/app-customers";
-import { deleteAppNotification, subscribeAppNotifications } from "@/lib/app-notifications";
+import {
+    deleteAppNotification,
+    requestPush,
+    subscribeAppNotifications,
+} from "@/lib/app-notifications";
 import { SubscriptionError } from "@/lib/firestore-errors";
 import { formatDateTime } from "@/lib/format";
 import { formatPhoneDisplay, phoneMatches, phoneToRouteId } from "@/lib/phone";
@@ -61,6 +66,7 @@ const AppNotificationsPage = () => {
     const [formOpen, setFormOpen] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [pushingId, setPushingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState("");
 
     useEffect(() => {
@@ -116,6 +122,14 @@ const AppNotificationsPage = () => {
         if (!result.success) setActionError(result.message);
     };
 
+    const handlePush = async (id: string) => {
+        setPushingId(id);
+        setActionError("");
+        const result = await requestPush(id);
+        setPushingId(null);
+        if (!result.success && result.message) setActionError(result.message);
+    };
+
     const closeForm = useCallback(() => setFormOpen(false), []);
 
     return (
@@ -125,14 +139,15 @@ const AppNotificationsPage = () => {
                 <p className="text-sm text-gray-600">
                     Notifikasi yang tampil di halaman Notifikasi app customer
                     {master ? "" : ` untuk outlet ${outlets.map((outlet) => outlet.name).join(", ")}`}.
-                    Termasuk notifikasi otomatis saat status pesanan diubah.
+                    Termasuk notifikasi otomatis saat status pesanan diubah. Setiap notifikasi baru juga
+                    dikirim sebagai push ke HP pelanggan yang mengizinkan notifikasi.
                 </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
                 <div className="relative w-full sm:w-80">
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                    <Input 
+                    <Input
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Cari judul, isi, pelanggan, atau no. pesanan"
@@ -231,6 +246,11 @@ const AppNotificationsPage = () => {
                                                     {outletName && `Outlet ${outletName}`}
                                                 </p>
                                             )}
+                                            <AppNotificationPushStatus
+                                                notification={item}
+                                                retrying={pushingId === item.id}
+                                                onRetry={() => handlePush(item.id)}
+                                            />
                                             <p className="md:hidden mt-1 text-xs text-gray-600">Ke: {recipient}</p>
                                         </TableCell>
                                         <TableCell className="hidden md:table-cell">
@@ -309,7 +329,7 @@ const AppNotificationsPage = () => {
             )}
 
             {formOpen && (
-                <AppNotificationForm 
+                <AppNotificationForm
                     customers={customers}
                     outlets={outlets}
                     isMaster={master}

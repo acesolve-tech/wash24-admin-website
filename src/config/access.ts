@@ -94,6 +94,16 @@ export const canEditAppCustomer = (user: AccessUser | null | undefined) => isMas
 
 export const canBroadcastNotification = (user: AccessUser | null | undefined) => isMaster(user);
 
+export function canManageAppNotification(
+    user: AccessUser | null | undefined,
+    notification: { type: string; outletId: string }
+): boolean {
+    if (!canAccessPath("/app-notifications", user)) return false;
+    if (isMaster(user)) return true;
+    if (notification.type === "broadcast" || !notification.outletId) return false;
+    return getAppOutlets(user).some((outlet) => outlet.id === notification.outletId);
+}
+
 export function canAccessPath(pathname: string, user: AccessUser | null | undefined): boolean {
     const role = normalizeRole(user?.role);
     if (!role) return false;
